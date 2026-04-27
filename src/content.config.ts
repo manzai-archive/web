@@ -12,8 +12,8 @@ const manzai = defineCollection({
       })
     ),
     source: z.object({
-      platform: z.enum(['youtube', 'bilibili', 'other']),
-      url: z.string().url(),
+      platform: z.enum(['youtube', 'bilibili', 'local', 'other']),
+      url: z.string(),
       uploader: z.string().optional(),
       uploaded_at: z
         .union([z.string(), z.date()])
@@ -21,7 +21,8 @@ const manzai = defineCollection({
         .optional(),
       duration_sec: z.number().optional(),
     }),
-    language: z.enum(['ja', 'zh', 'en']).default('ja'),
+    // ISO 639-1 code, free-form so Whisper-detected codes work without enum churn
+    language: z.string().default('ja'),
     tags: z.array(z.string()).default([]),
     speakers: z.record(z.string(), z.string()).default({}),
     sensitivity: z.enum(['normal', 'high']).default('normal'),

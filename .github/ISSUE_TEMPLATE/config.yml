@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 下架申请 / Takedown request
+    url: https://github.com/manzai-archive/web/blob/main/NOTICE.md
+    about: 版权方移除请求请走此通道（72h 响应）

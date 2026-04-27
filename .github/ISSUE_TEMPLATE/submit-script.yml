@@ -1,0 +1,67 @@
+name: 提交剧本 / Submit a script
+description: 提交一个漫才视频 URL，维护者审核后会自动转写并开 PR
+labels: [submission]
+title: "[提交] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢贡献！流程：你提交 → 维护者审核打 `accepted` 标签 → 自动转写跑出 PR → 维护者修说话人映射 → 合并部署。
+        全流程通常 1-2 天。如果你已经手写好剧本，请直接提 PR 而不是开这个 issue。
+
+  - type: input
+    id: url
+    attributes:
+      label: 视频 URL
+      description: YouTube / B站 / 其他公开来源。**必须是公开访问的**，不接受私域内容。
+      placeholder: https://www.youtube.com/watch?v=...
+    validations:
+      required: true
+
+  - type: input
+    id: group
+    attributes:
+      label: 组合名 / 表演者
+      description: 例如 "令和ロマン"、"中川家"、"漫才兄弟"
+      placeholder: 令和ロマン
+    validations:
+      required: true
+
+  - type: input
+    id: group_slug
+    attributes:
+      label: 组合 slug
+      description: 仅用拉丁字母 + 连字符（生成文件名用）
+      placeholder: reiwaroman
+    validations:
+      required: true
+
+  - type: input
+    id: tags
+    attributes:
+      label: 标签
+      description: 逗号分隔，例如 `M-1, 2022, 決勝`
+      placeholder: M-1, 2022
+
+  - type: dropdown
+    id: sensitivity
+    attributes:
+      label: 版权敏感度
+      description: 高敏感（M-1 决赛、电视节目正式播出）的内容只渲染部分文本
+      options:
+        - normal
+        - high
+      default: 0
+
+  - type: input
+    id: language
+    attributes:
+      label: 语言（可选）
+      description: ISO 码 `ja` / `zh` / `en`。留空则 Whisper 自动检测。
+      placeholder: ja
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: 备注
+      description: 任何对审核有帮助的信息：出处、特殊说明、为什么值得收录等

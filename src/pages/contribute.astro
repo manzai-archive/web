@@ -1,0 +1,102 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="贡献剧本 · 漫才档案">
+  <h1 class="text-2xl font-bold mb-4">贡献剧本</h1>
+  <p class="mb-6 text-sm text-neutral-700">
+    在 YouTube / B 站上发现想分享的漫才？填下面表单（不需要懂 git），
+    维护者审核后会自动转写并加进档案。
+  </p>
+
+  <form id="submit-form" class="space-y-4 bg-white border border-neutral-200 rounded-md p-5">
+    <div>
+      <label class="block text-sm font-medium mb-1">视频 URL <span class="text-red-500">*</span></label>
+      <input type="url" name="url" required placeholder="https://www.youtube.com/watch?v=..."
+             class="w-full px-3 py-2 border border-neutral-300 rounded text-sm" />
+    </div>
+    <div class="grid sm:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium mb-1">组合名 <span class="text-red-500">*</span></label>
+        <input type="text" name="group" required placeholder="令和ロマン"
+               class="w-full px-3 py-2 border border-neutral-300 rounded text-sm" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1">组合 slug <span class="text-red-500">*</span></label>
+        <input type="text" name="group_slug" required placeholder="reiwaroman" pattern="[a-z0-9\-]+"
+               class="w-full px-3 py-2 border border-neutral-300 rounded text-sm" />
+        <p class="text-xs text-neutral-500 mt-1">仅小写字母、数字、连字符</p>
+      </div>
+    </div>
+    <div>
+      <label class="block text-sm font-medium mb-1">标签</label>
+      <input type="text" name="tags" placeholder="M-1, 2022, 決勝"
+             class="w-full px-3 py-2 border border-neutral-300 rounded text-sm" />
+      <p class="text-xs text-neutral-500 mt-1">逗号分隔</p>
+    </div>
+    <div class="grid sm:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium mb-1">敏感度</label>
+        <select name="sensitivity" class="w-full px-3 py-2 border border-neutral-300 rounded text-sm">
+          <option value="normal">normal（一般 UP 主、自频道）</option>
+          <option value="high">high（M-1 决赛、电视节目）</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1">语言（可选）</label>
+        <input type="text" name="language" placeholder="ja"
+               class="w-full px-3 py-2 border border-neutral-300 rounded text-sm" />
+        <p class="text-xs text-neutral-500 mt-1">留空则自动检测</p>
+      </div>
+    </div>
+    <div>
+      <label class="block text-sm font-medium mb-1">备注</label>
+      <textarea name="notes" rows="3" placeholder="任何对审核有帮助的信息"
+                class="w-full px-3 py-2 border border-neutral-300 rounded text-sm"></textarea>
+    </div>
+    <button type="submit"
+            class="w-full px-4 py-2 bg-neutral-900 text-white rounded font-medium hover:bg-neutral-700 transition">
+      在 GitHub 上提交（需要 GH 账号）
+    </button>
+    <p class="text-xs text-neutral-500 text-center">
+      点击会跳转到 GitHub 预填好的 issue 页面，确认后提交。
+      没有 GH 账号？<a class="underline" href="https://github.com/join" target="_blank" rel="noopener">2 分钟注册</a>。
+    </p>
+  </form>
+
+  <div class="mt-8 text-sm">
+    <h2 class="font-semibold mb-2">其他贡献方式</h2>
+    <ul class="list-disc pl-6 space-y-1 text-neutral-700">
+      <li>已有干净文本？<a class="underline" href="https://github.com/manzai-archive/web/blob/main/CONTRIBUTING.md#b-手写-markdown-pr" target="_blank" rel="noopener">直接提 PR</a></li>
+      <li>能跑 Python？<a class="underline" href="https://github.com/manzai-archive/pipeline" target="_blank" rel="noopener">本地跑 pipeline</a></li>
+      <li>发现某条剧本有错？<a class="underline" href="https://github.com/manzai-archive/web/issues/new/choose" target="_blank" rel="noopener">报告问题</a></li>
+    </ul>
+  </div>
+
+  <script is:inline>
+    document.getElementById('submit-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const f = e.target;
+      const v = (n) => f.elements[n].value.trim();
+      const body = [
+        `### 视频 URL`, v('url'), '',
+        `### 组合名 / 表演者`, v('group'), '',
+        `### 组合 slug`, v('group_slug'), '',
+        `### 标签`, v('tags') || '_未填_', '',
+        `### 版权敏感度`, v('sensitivity'), '',
+        `### 语言（可选）`, v('language') || '_自动检测_', '',
+        `### 备注`, v('notes') || '_无_',
+      ].join('\n');
+      const url = new URL('https://github.com/manzai-archive/web/issues/new');
+      url.searchParams.set('template', 'submit-script.yml');
+      url.searchParams.set('title', `[提交] ${v('group')} — `);
+      url.searchParams.set('url', v('url'));
+      url.searchParams.set('group', v('group'));
+      url.searchParams.set('group_slug', v('group_slug'));
+      url.searchParams.set('tags', v('tags'));
+      url.searchParams.set('sensitivity', v('sensitivity'));
+      url.searchParams.set('language', v('language'));
+      url.searchParams.set('notes', v('notes'));
+      window.open(url.toString(), '_blank');
+    });
+  </script>
+</Base>

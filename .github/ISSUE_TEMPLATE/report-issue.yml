@@ -1,0 +1,35 @@
+name: 报告问题 / Report inaccuracy
+description: 报告某条剧本的转写错字、说话人映射错误等
+labels: [bug]
+title: "[问题] "
+body:
+  - type: input
+    id: entry
+    attributes:
+      label: 涉及条目 URL
+      description: 站点上剧本详情页 URL
+      placeholder: https://manzai-archive.github.io/web/manzai/...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: 问题类型
+      options:
+        - 转写错字 / typo
+        - 说话人映射错误
+        - 缺失/多余的台词
+        - 时间戳偏移
+        - 翻译错误
+        - 其他
+
+  - type: textarea
+    id: detail
+    attributes:
+      label: 详细描述
+      description: 时间戳 + 错误内容 + 应该是什么
+      placeholder: |
+        00:01:23 处的「○○」应该是「××」
+    validations:
+      required: true
