@@ -1,8 +1,6 @@
 ---
 title: サンプル漫才（プレースホルダー）
-performers:
-  - name: example-group
-    members: []
+performers: [example-group]
 source:
   platform: other
   url: https://example.com/sample
@@ -25,6 +23,13 @@ translations:
     - 好的，您说。
     - 最近我迷上一件事。
     - 哦，是什么？
+ingestion:
+  pipeline_version: "0.0.0"
+  asr:
+    backend: placeholder
+    model: placeholder
+    detected_language: ja
+    word_count: 0
 ---
 
 <!-- Placeholder entry. Replace with real content from the pipeline. -->

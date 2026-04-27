@@ -41,34 +41,79 @@
 6. 修说话人映射、校对，flip `status: draft` → `reviewed`
 7. 提 PR
 
-## Frontmatter 字段速查
+## 数据模型
+
+剧本（`src/content/manzai/<slug>.md`）和组合（`src/content/performers/<slug>.yaml`）分开维护，剧本只引用组合的 slug，单一可信源。
+
+### 组合 / Performer（一个文件一个组合）
+
+`src/content/performers/nakagawake.yaml`：
+```yaml
+display_name: 中川家
+display_name_alts: [Nakagawa-ke]
+language: ja
+region: jp
+members:
+  - name: 中川剛
+    role: ツッコミ
+  - name: 中川礼二
+    role: ボケ
+links:
+  youtube_channel: https://...
+description: |
+  吉本兴业兄弟漫才组合。
+```
+
+新增组合就新建一个 yaml 文件，diff 干净，无合并冲突。
+
+### 剧本 frontmatter
 
 ```yaml
 ---
 title: 中川家の寄席2024「保険の契約」
-performers:
-  - name: 中川家            # 显示名
-    members: [中川剛, 中川礼二]
+performers: [nakagawake]      # 仅写 slug，必须在 performers 集合中存在
 source:
-  platform: youtube         # youtube | bilibili | local | other
+  platform: youtube           # youtube | bilibili | local | other
   url: https://www.youtube.com/watch?v=xxx
   uploader: 中川家チャンネル
   uploaded_at: "2024-09-15"
   duration_sec: 193
-language: ja                 # ISO 码
+  fetched_at: "2026-04-28T01:23:45Z"      # pipeline 自动写
+  fetched_with: yt-dlp/2026.03.17         # pipeline 自动写
+language: ja
 tags: [寄席, 2024]
-speakers:                    # SPEAKER_00 → 真名映射
+speakers:                                 # SPEAKER_00 → 真名映射
   SPEAKER_00: 礼二
   SPEAKER_01: 剛
-sensitivity: normal          # normal | high
-status: draft                # draft | reviewed
+sensitivity: normal                       # normal | high
+status: draft                             # draft | reviewed
 contributed_by: yourname
-translations:                # 可选：每行翻译，必须与原文行数相等
+translations:                             # 可选：每行翻译，行数须与原文一致
   zh:
     - 大家好。
     - ...
+ingestion:                                # pipeline 自动写，溯源用
+  pipeline_version: "0.1.0"
+  asr:
+    backend: mlx
+    model: mlx-community/whisper-large-v3-turbo
+    detected_language: ja
+    word_count: 387
+  diarization:
+    model: pyannote/speaker-diarization-3.1
+    num_speakers: 2
+    turn_count: 14
 ---
 ```
+
+`ingestion` 块由 pipeline 自动写，让我们日后想"重跑所有 large-v3 之前的"一行 grep 就能筛。
+不必手填，但若你手写 PR 可以省略整个块。
+
+`fetched_at`/`fetched_with` 同理是溯源字段，pipeline 自动写，手写时可省。
+
+### 审计/历史
+
+不再单独维护 audit YAML——`git log src/content/manzai/<slug>.md` 就是完整历史，PR review 也是审计。
 
 ## Review 标准
 

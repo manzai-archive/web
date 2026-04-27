@@ -1,15 +1,19 @@
 ---
+import { getEntry } from 'astro:content';
+
 const { entry } = Astro.props;
 const base = import.meta.env.BASE_URL;
-const groupName = entry.data.performers[0]?.name ?? 'Unknown';
-const lang = entry.data.language;
+const perfRef = entry.data.performers[0];
+const perf = perfRef ? await getEntry(perfRef) : null;
+const groupName = perf?.data.display_name ?? (typeof perfRef === 'string' ? perfRef : perfRef?.id) ?? 'Unknown';
+const lang = perf?.data.language ?? entry.data.language;
 ---
 <a href={`${base}manzai/${entry.id}/`} class="block p-4 border border-neutral-200 rounded-md hover:border-neutral-400 hover:bg-white transition">
   <div class="text-xs text-neutral-500 mb-1">
     <span lang={lang}>{groupName}</span>
     {entry.data.source.uploaded_at ? ` · ${entry.data.source.uploaded_at}` : ''}
   </div>
-  <div class="font-semibold mb-2" lang={lang}>{entry.data.title}</div>
+  <div class="font-semibold mb-2" lang={entry.data.language}>{entry.data.title}</div>
   <div class="flex gap-1.5 text-xs flex-wrap">
     {entry.data.tags.map((t: string) => (
       <span class="px-2 py-0.5 bg-neutral-100 rounded">{t}</span>
