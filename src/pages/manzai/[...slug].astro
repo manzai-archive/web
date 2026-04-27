@@ -27,8 +27,8 @@ const speakerOrder = Array.from(new Set(lines.map((l) => l.speaker)));
 <Base title={`${entry.data.title} · 漫才档案`}>
   <article>
     <div class="mb-6">
-      <div class="text-xs text-neutral-500 mb-1">{entry.data.performers[0]?.name}</div>
-      <h1 class="text-2xl font-bold mb-2">{entry.data.title}</h1>
+      <div class="text-xs text-neutral-500 mb-1" lang={entry.data.language}>{entry.data.performers[0]?.name}</div>
+      <h1 class="text-2xl font-bold mb-2" lang={entry.data.language}>{entry.data.title}</h1>
       <div class="flex gap-1.5 text-xs flex-wrap mb-3">
         {entry.data.tags.map((t: string) => (
           <span class="px-2 py-0.5 bg-neutral-100 rounded">{t}</span>
@@ -50,7 +50,7 @@ const speakerOrder = Array.from(new Set(lines.map((l) => l.speaker)));
       </div>
     </div>
 
-    <div class="bg-white border border-neutral-200 rounded-md p-5" data-pagefind-body>
+    <div class="bg-white border border-neutral-200 rounded-md p-5" data-pagefind-body lang={entry.data.language}>
       {lines.map((l) => (
         <SpeakerLine
           speaker={l.speaker}

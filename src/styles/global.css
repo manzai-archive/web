@@ -1,13 +1,42 @@
 @import "tailwindcss";
 
+/*
+  Font strategy:
+  - Default (zh-CN, set on <html>): Latin first, then Chinese fonts.
+  - :lang(ja): elements explicitly marked lang="ja" get Japanese fonts,
+    so kanji like 直/骨/言 render with JP glyph shape, not CN.
+  - :lang(en): pure Latin fallback.
+  Latin characters always come from the leading -apple-system / system-ui,
+  so English text inside any block looks native.
+*/
+
+@theme {
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI",
+    system-ui, "Helvetica Neue", "Helvetica", Arial,
+    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    "Noto Sans SC", "WenQuanYi Micro Hei", sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
 :root {
   --speaker-a: oklch(0.55 0.18 250);
   --speaker-b: oklch(0.55 0.18 30);
 }
 
-body {
-  font-family: ui-sans-serif, system-ui, "Hiragino Sans", "Noto Sans JP",
-               "PingFang SC", "Microsoft YaHei", sans-serif;
+:lang(ja) {
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI",
+    system-ui, "Helvetica Neue", "Helvetica", Arial,
+    "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic",
+    "Yu Gothic UI", "Meiryo", "Noto Sans JP", sans-serif;
+}
+
+:lang(en) {
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI",
+    system-ui, "Helvetica Neue", "Helvetica", Arial, sans-serif;
 }
 
 .script-line[data-speaker-idx="0"] .speaker { color: var(--speaker-a); }
