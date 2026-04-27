@@ -4,6 +4,7 @@ Static site (Astro + Tailwind + Pagefind) for the manzai script archive.
 
 - Live: https://manzai-archive.github.io/web/
 - Pipeline (transcription): https://github.com/manzai-archive/pipeline
+- Maintainer: [wheatfox](https://github.com/enkerewpo)
 
 ## Develop
 
