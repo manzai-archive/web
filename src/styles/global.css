@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+:root {
+  --speaker-a: oklch(0.55 0.18 250);
+  --speaker-b: oklch(0.55 0.18 30);
+}
+
+body {
+  font-family: ui-sans-serif, system-ui, "Hiragino Sans", "Noto Sans JP",
+               "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+.script-line[data-speaker-idx="0"] .speaker { color: var(--speaker-a); }
+.script-line[data-speaker-idx="1"] .speaker { color: var(--speaker-b); }

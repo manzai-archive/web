@@ -1,0 +1,70 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import SpeakerLine from '../../components/SpeakerLine.astro';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('manzai');
+  return entries.map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+
+const lineRegex = /\*\*(.+?)\*\*\s*\[(\d{2}:\d{2}:\d{2})\]\s*(.+)/;
+const speakerMap: Record<string, string> = entry.data.speakers ?? {};
+const lines = entry.body
+  .split('\n')
+  .map((l: string) => l.match(lineRegex))
+  .filter((m: RegExpMatchArray | null): m is RegExpMatchArray => m !== null)
+  .map((m: RegExpMatchArray) => ({
+    speaker: speakerMap[m[1]] ?? m[1],
+    time: m[2],
+    text: m[3],
+  }));
+
+const speakerOrder = Array.from(new Set(lines.map((l) => l.speaker)));
+---
+<Base title={`${entry.data.title} · 漫才アーカイブ`}>
+  <article>
+    <div class="mb-6">
+      <div class="text-xs text-neutral-500 mb-1">{entry.data.performers[0]?.name}</div>
+      <h1 class="text-2xl font-bold mb-2">{entry.data.title}</h1>
+      <div class="flex gap-1.5 text-xs flex-wrap mb-3">
+        {entry.data.tags.map((t: string) => (
+          <span class="px-2 py-0.5 bg-neutral-100 rounded">{t}</span>
+        ))}
+        {entry.data.status === 'draft' && (
+          <span class="px-2 py-0.5 bg-amber-100 text-amber-700 rounded">draft (未校对)</span>
+        )}
+      </div>
+      <div class="text-sm">
+        <a class="underline text-blue-700" href={entry.data.source.url} target="_blank" rel="noopener">
+          原视频 ({entry.data.source.platform})
+        </a>
+        {entry.data.source.uploader && (
+          <span class="text-neutral-500"> · {entry.data.source.uploader}</span>
+        )}
+        {entry.data.source.uploaded_at && (
+          <span class="text-neutral-500"> · {entry.data.source.uploaded_at}</span>
+        )}
+      </div>
+    </div>
+
+    <div class="bg-white border border-neutral-200 rounded-md p-5" data-pagefind-body>
+      {lines.map((l) => (
+        <SpeakerLine
+          speaker={l.speaker}
+          time={l.time}
+          text={l.text}
+          idx={speakerOrder.indexOf(l.speaker)}
+        />
+      ))}
+    </div>
+
+    {entry.data.sensitivity === 'high' && (
+      <p class="mt-4 text-xs text-neutral-500">
+        本作品来源于版权敏感的赛事/电视节目。本站仅保留文字片段供研究学习，请通过原视频链接观看完整内容支持创作者。
+      </p>
+    )}
+  </article>
+</Base>

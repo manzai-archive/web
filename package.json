@@ -1,0 +1,22 @@
+{
+  "name": "manzai-archive-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build && pagefind --site dist",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/mdx": "^5.0.4",
+    "@tailwindcss/vite": "^4.2.4",
+    "astro": "^6.1.9",
+    "tailwindcss": "^4.2.4"
+  },
+  "devDependencies": {
+    "pagefind": "^1.5.2",
+    "typescript": "^5.6.0"
+  }
+}

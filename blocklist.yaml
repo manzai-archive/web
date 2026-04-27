@@ -1,0 +1,9 @@
+# Entry IDs (slugs from content filenames, without `.md`) excluded from
+# the site build per takedown requests.
+#
+# Format:
+#   - id: reiwaroman-2022-some-slug
+#     reason: takedown | quality | duplicate
+#     date: YYYY-MM-DD
+#     note: optional context
+ids: []

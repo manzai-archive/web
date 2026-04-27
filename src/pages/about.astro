@@ -1,0 +1,28 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="关于 · 漫才アーカイブ">
+  <h1 class="text-2xl font-bold mb-4">关于本站</h1>
+  <p class="mb-3">面向语言学习者与喜剧研究者的漫才剧本档案。</p>
+  <ul class="list-disc pl-6 mb-6 text-sm space-y-1">
+    <li>仅存文字转写与元数据；不托管任何音视频文件</li>
+    <li>每条目均链回原视频，鼓励观看原片支持创作者</li>
+    <li>转写由 Whisper + pyannote 自动生成，再人工校对</li>
+    <li>非营利、无广告、无追踪</li>
+  </ul>
+
+  <h2 class="text-lg font-semibold mb-2">下架申请</h2>
+  <p class="text-sm mb-6">
+    版权方请通过
+    <a class="underline" href="https://github.com/manzai-archive/web/issues/new" target="_blank" rel="noopener">GitHub Issue</a>
+    联系，72 小时内响应。详见
+    <a class="underline" href="https://github.com/manzai-archive/web/blob/main/NOTICE.md" target="_blank" rel="noopener">NOTICE.md</a>。
+  </p>
+
+  <h2 class="text-lg font-semibold mb-2">技术栈</h2>
+  <ul class="list-disc pl-6 text-sm space-y-1">
+    <li>站点: Astro + Tailwind + Pagefind, GitHub Pages</li>
+    <li>转写: faster-whisper (large-v3) + pyannote 3.1</li>
+    <li>来源: <a class="underline" href="https://github.com/manzai-archive/pipeline" target="_blank" rel="noopener">manzai-archive/pipeline</a></li>
+  </ul>
+</Base>
