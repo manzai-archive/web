@@ -10,11 +10,16 @@ const base = import.meta.env.BASE_URL;
     <meta name="viewport" content="width=device-width" />
     <title>{title}</title>
     <meta name="description" content="带说话人标注的漫才剧本档案 · 面向语言学习与喜剧研究的非营利档案" />
+    <link rel="icon" type="image/svg+xml" href={`${base}favicon.svg`} />
+    <link rel="apple-touch-icon" href={`${base}apple-touch-icon.png`} />
   </head>
   <body class="bg-neutral-50 text-neutral-900 min-h-screen flex flex-col">
     <header class="border-b border-neutral-200 bg-white">
       <nav class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between text-sm">
-        <a href={base} class="font-bold">漫才档案</a>
+        <a href={base} class="font-bold flex items-center gap-2">
+          <img src={`${base}favicon.svg`} alt="" class="w-6 h-6" width="24" height="24" />
+          漫才档案
+        </a>
         <div class="flex gap-5">
           <a href={`${base}manzai/`} class="hover:underline">剧本</a>
           <a href={`${base}about/`} class="hover:underline">关于</a>

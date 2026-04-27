@@ -17,6 +17,14 @@ speakers:
   SPEAKER_01: ツッコミ
 sensitivity: normal
 status: draft
+translations:
+  zh:
+    - 大家好。
+    - 请多关照。
+    - 那我们直接开始，听我说一下行吗。
+    - 好的，您说。
+    - 最近我迷上一件事。
+    - 哦，是什么？
 ---
 
 <!-- Placeholder entry. Replace with real content from the pipeline. -->

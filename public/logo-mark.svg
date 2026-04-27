@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <path d="M 128 240 L 128 96 L 256 96"
+        stroke="#3F5BCB" stroke-width="48"
+        stroke-linecap="square" stroke-linejoin="miter"/>
+  <path d="M 384 272 L 384 416 L 256 416"
+        stroke="#C8553D" stroke-width="48"
+        stroke-linecap="square" stroke-linejoin="miter"/>
+</svg>

@@ -28,6 +28,10 @@ const manzai = defineCollection({
     status: z.enum(['draft', 'reviewed']).default('draft'),
     contributed_by: z.string().optional(),
     license_note: z.string().optional(),
+    // Per-line translations. Each value must be an array with the same
+    // length as the script body's line count, in the same order.
+    // Mismatched lengths are silently ignored at render time.
+    translations: z.record(z.string(), z.array(z.string())).optional(),
   }),
 });
 
