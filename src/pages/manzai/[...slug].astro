@@ -273,6 +273,30 @@ const editorBootstrap = {
       background-color: rgba(255, 220, 130, 0.22);
       box-shadow: 0 0 0 1px rgba(180,140,60,0.4);
     }
+    .lines.editing [data-role="time"] {
+      cursor: text;
+      outline: none;
+      border-radius: 2px;
+      padding: 2px 3px;
+      margin: -2px -3px;
+      text-decoration: underline;
+      text-decoration-style: dotted;
+      text-decoration-color: var(--color-ink-faint);
+      text-underline-offset: 3px;
+      transition: background-color 0.12s;
+    }
+    .lines.editing [data-role="time"]:hover {
+      background-color: rgba(0,0,0,0.05);
+    }
+    .lines.editing [data-role="time"]:focus {
+      background-color: rgba(255, 220, 130, 0.22);
+      text-decoration-color: transparent;
+      box-shadow: 0 0 0 1px rgba(180,140,60,0.4);
+    }
+    .lines.editing [data-role="time"].invalid {
+      box-shadow: 0 0 0 1px var(--color-warm);
+      background-color: rgba(220, 80, 80, 0.08);
+    }
 
     .row-drag-handle, .row-menu-trigger {
       position: absolute;
@@ -410,7 +434,7 @@ const editorBootstrap = {
           <div class="script-line group relative flex gap-4 py-1" data-uid="${escAttr(u.id)}" data-speaker-idx="${idx % 2}">
             <span class="row-drag-handle" title="拖动排序" draggable="true">⋮⋮</span>
             <span class="speaker shrink-0 w-20 text-right text-[13px] font-medium" style="line-height: 1.85" data-role="speaker">${escHtml(u.speaker)}</span>
-            <span class="text-[11px] tabular-nums shrink-0 w-14 pt-1" style="color: var(--color-ink-faint)" data-role="time">${escHtml(u.t)}</span>
+            <span class="text-[11px] tabular-nums shrink-0 w-14 pt-1" style="color: var(--color-ink-faint)" data-role="time" spellcheck="false">${escHtml(u.t)}</span>
             <span class="flex-1 line-text text-[15px] leading-[1.85]" data-role="text">
               <span class="text-${sl}" lang="${sl}">${escHtml(u.text)}</span>
             </span>
@@ -431,12 +455,56 @@ const editorBootstrap = {
         pushHistory();
       };
 
+      const TIME_RE = /^\d{1,2}:\d{2}:\d{2}$/;
+      const normalizeTime = (s: string): string | null => {
+        const t = s.trim();
+        if (!TIME_RE.test(t)) return null;
+        const [h, m, sec] = t.split(':').map((n) => parseInt(n, 10));
+        if (m > 59 || sec > 59) return null;
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+      };
+
       const wireRow = (row: HTMLElement) => {
         const uid = row.dataset.uid!;
         const speakerEl = row.querySelector('[data-role="speaker"]') as HTMLElement | null;
         const textEl = row.querySelector('[data-role="text"]') as HTMLElement | null;
+        const timeEl = row.querySelector('[data-role="time"]') as HTMLElement | null;
         const trigger = row.querySelector('.row-menu-trigger') as HTMLElement | null;
         const dragHandle = row.querySelector('.row-drag-handle') as HTMLElement | null;
+
+        if (timeEl) {
+          timeEl.contentEditable = 'true';
+          timeEl.spellcheck = false;
+          timeEl.addEventListener('focus', () => { pendingTextEl = timeEl; });
+          timeEl.addEventListener('input', () => {
+            const idx = findIdx(uid);
+            if (idx < 0) return;
+            const raw = (timeEl.textContent ?? '').trim();
+            timeEl.classList.toggle('invalid', !TIME_RE.test(raw));
+            working[idx].t = raw;
+            row.classList.add('dirty');
+            updateButtons();
+          });
+          timeEl.addEventListener('blur', () => {
+            if (pendingTextEl === timeEl) pendingTextEl = null;
+            const idx = findIdx(uid);
+            if (idx >= 0) {
+              const norm = normalizeTime(timeEl.textContent ?? '');
+              if (norm !== null) {
+                working[idx].t = norm;
+                timeEl.textContent = norm;
+                timeEl.classList.remove('invalid');
+              } else {
+                timeEl.classList.add('invalid');
+              }
+            }
+            pushHistory();
+          });
+          // disallow newlines
+          timeEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); timeEl.blur(); }
+          });
+        }
 
         speakerEl?.addEventListener('click', (e) => {
           e.stopPropagation();
