@@ -15,15 +15,11 @@ const sourceLang = entry.data.language;
 
 const dialogueEntry = await getEntry('dialogues', entry.id);
 
-type Utterance = {
-  id: string;
-  speaker: string;
-  time: string;
-  texts: Record<string, string>;
-};
-let lines: Utterance[] = [];
 type RawUtterance = { id: string; t: string; speaker: string; text: string; translations?: Record<string, string> };
+type Utterance = { id: string; speaker: string; time: string; texts: Record<string, string> };
+
 let rawUtterances: RawUtterance[] = [];
+let lines: Utterance[] = [];
 
 if (dialogueEntry) {
   rawUtterances = dialogueEntry.data.utterances.map((u, i) => ({
@@ -38,26 +34,15 @@ if (dialogueEntry) {
     for (const [lang, t] of Object.entries(u.translations ?? {})) {
       if (typeof t === 'string') texts[lang] = t;
     }
-    lines.push({
-      id: u.id,
-      speaker: speakerMap[u.speaker] ?? u.speaker,
-      time: u.t,
-      texts,
-    });
+    lines.push({ id: u.id, speaker: speakerMap[u.speaker] ?? u.speaker, time: u.t, texts });
   }
 } else {
   // Legacy in-body parsing (pre-Plan-C entries)
   const lineRegex = /\*\*(.+?)\*\*\s*\[(\d{2}:\d{2}:\d{2})\]\s*(.+)/;
-  const bodyMatches = entry.body
-    .split('\n')
+  const bodyMatches = entry.body.split('\n')
     .map((l: string) => l.match(lineRegex))
     .filter((m: RegExpMatchArray | null): m is RegExpMatchArray => m !== null);
-  rawUtterances = bodyMatches.map((m, i) => ({
-    id: `u${i + 1}`,
-    t: m[2],
-    speaker: m[1],
-    text: m[3],
-  }));
+  rawUtterances = bodyMatches.map((m, i) => ({ id: `u${i + 1}`, t: m[2], speaker: m[1], text: m[3] }));
   lines = bodyMatches.map((m, i) => ({
     id: `u${i + 1}`,
     speaker: speakerMap[m[1]] ?? m[1],
@@ -66,18 +51,13 @@ if (dialogueEntry) {
   }));
 }
 
-const availableLangs = Array.from(
-  new Set(lines.flatMap((l) => Object.keys(l.texts)))
-).sort((a, b) => (a === sourceLang ? -1 : b === sourceLang ? 1 : 0));
+const availableLangs = Array.from(new Set(lines.flatMap((l) => Object.keys(l.texts))))
+  .sort((a, b) => (a === sourceLang ? -1 : b === sourceLang ? 1 : 0));
 const defaultLang = availableLangs.includes('zh') ? 'zh' : sourceLang;
 
 const FORM_LABEL: Record<string, string> = {
-  manzai: '漫才',
-  xiangsheng: '相声',
-  standup: '脱口秀',
-  sketch: 'コント / 小品',
-  rakugo: '落語',
-  other: '其他',
+  manzai: '漫才', xiangsheng: '相声', standup: '脱口秀',
+  sketch: 'コント / 小品', rakugo: '落語', other: '其他',
 };
 const formLabel = FORM_LABEL[entry.data.form] ?? entry.data.form;
 const roles: Record<string, string> = entry.data.roles ?? {};
@@ -91,21 +71,14 @@ const perf = perfRef ? await getEntry(perfRef) : null;
 const perfName = perf?.data.display_name ?? (typeof perfRef === 'string' ? perfRef : perfRef?.id) ?? 'Unknown';
 const perfLang = perf?.data.language ?? sourceLang;
 
-// Speaker dropdown options for the editor: union of canonical members
-// (from the performer registry) and any speaker labels seen in the
-// dialogue. Keeps weird auto-generated labels usable as a fallback.
 const memberNames = (perf?.data.members ?? []).map((m: { name: string }) => m.name);
-const speakerOptions = Array.from(new Set([
-  ...memberNames,
-  ...rawUtterances.map((u) => u.speaker),
-])).filter(Boolean);
+const speakerOptions = Array.from(new Set([...memberNames, ...rawUtterances.map((u) => u.speaker)])).filter(Boolean);
 
 const isDev = import.meta.env.DEV;
 const dialoguePath = `src/content/dialogues/${entry.id}.yaml`;
 const entryPath = `src/content/manzai/${entry.id}.md`;
 const githubBase = 'https://github.com/manzai-archive/web';
 const githubEditDialogue = `${githubBase}/edit/main/${dialoguePath}`;
-const githubEditEntry = `${githubBase}/edit/main/${entryPath}`;
 
 const editorBootstrap = {
   slug: entry.id,
@@ -114,8 +87,6 @@ const editorBootstrap = {
   sourceLang,
   dialoguePath,
   entryPath,
-  githubEditDialogue,
-  githubEditEntry,
 };
 ---
 <Base title={`${entry.data.title} · 喜剧档案`}>
@@ -155,13 +126,13 @@ const editorBootstrap = {
         </a>
         {isDev && (
           <button id="enter-edit" type="button" class="px-2 py-0.5 border rounded text-[11px]" style="border-color: var(--color-rule); color: var(--color-ink-soft)">
-            编辑（本地）
+            编辑
           </button>
         )}
       </div>
     </header>
 
-    <div class="script-container" data-display={defaultLang} data-pagefind-body>
+    <div id="script-container" class="script-container" data-display={defaultLang} data-pagefind-body>
       {availableLangs.length > 1 && (
         <div class="lang-toggle flex gap-1 mb-6 text-[12px] items-center">
           <span class="mr-2 text-[var(--color-ink-faint)]">显示</span>
@@ -174,18 +145,17 @@ const editorBootstrap = {
         </div>
       )}
 
-      <div id="view-mode" class="lines space-y-3">
-        {lines.map((l) => (
+      <div id="lines" class="lines space-y-3">
+        {lines.map((l, i) => (
           <SpeakerLine
             speaker={l.speaker}
             time={l.time}
             texts={l.texts}
             idx={speakerOrder.indexOf(l.speaker)}
+            uid={l.id}
           />
         ))}
       </div>
-
-      {isDev && <div id="edit-mode" class="hidden"></div>}
     </div>
 
     {entry.data.sensitivity === 'high' && (
@@ -209,30 +179,95 @@ const editorBootstrap = {
         </dl>
       </details>
     )}
-
-    {isDev && (
-      <div class="mt-10 pt-4 border-t" style="border-color: var(--color-rule)">
-        <button id="delete-entry" type="button" class="text-[12px] underline" style="color: var(--color-warm)">
-          删除此条目（本地）
-        </button>
-      </div>
-    )}
   </article>
 
   {isDev && (
-    <div id="edit-toolbar" class="hidden fixed bottom-0 left-0 right-0 border-t backdrop-blur" style="background-color: rgba(251, 249, 244, 0.95); border-color: var(--color-rule)">
-      <div class="max-w-3xl mx-auto px-6 py-3 flex items-center gap-3 text-[13px]">
-        <span id="edit-status" class="text-[var(--color-ink-faint)]">编辑中</span>
-        <button id="edit-add-end" type="button" class="ml-auto px-2 py-1 border rounded" style="border-color: var(--color-rule)">+ 末尾添加</button>
-        <button id="edit-cancel" type="button" class="px-2 py-1 border rounded" style="border-color: var(--color-rule)">取消</button>
-        <button id="edit-save" type="button" class="px-3 py-1 border rounded font-medium" style="border-color: var(--color-ink); background-color: var(--color-ink); color: var(--color-bg)">保存</button>
+    <>
+      <!-- floating toolbar -->
+      <div id="edit-toolbar" class="hidden fixed bottom-0 left-0 right-0 border-t backdrop-blur z-20" style="background-color: rgba(251, 249, 244, 0.94); border-color: var(--color-rule)">
+        <div class="max-w-3xl mx-auto px-6 py-3 flex items-center gap-3 text-[13px]">
+          <span class="text-[var(--color-ink-faint)]">编辑模式</span>
+          <span id="edit-status" class="text-[var(--color-ink-faint)]">·</span>
+          <span class="ml-auto text-[11px] text-[var(--color-ink-faint)]">点说话人切换 · 点文字编辑 · 行末 ⋮ 增删换序</span>
+          <button id="edit-delete" type="button" class="px-2 py-1 border rounded text-[11px]" style="border-color: var(--color-rule); color: var(--color-warm)">删除整条</button>
+          <button id="edit-cancel" type="button" class="px-3 py-1 border rounded" style="border-color: var(--color-rule)">取消</button>
+          <button id="edit-save" type="button" class="px-3 py-1 border rounded font-medium" style="border-color: var(--color-ink); background-color: var(--color-ink); color: var(--color-bg)">保存</button>
+        </div>
       </div>
-    </div>
+
+      <!-- row action menu (popover) -->
+      <div id="row-menu" class="hidden fixed z-30 border bg-[var(--color-bg)] rounded shadow-sm text-[12px]" style="border-color: var(--color-rule); min-width: 140px">
+        <button data-action="add-above" class="block w-full text-left px-3 py-1.5 hover:bg-black/5">↑ 上方插入</button>
+        <button data-action="add-below" class="block w-full text-left px-3 py-1.5 hover:bg-black/5">↓ 下方插入</button>
+        <button data-action="up" class="block w-full text-left px-3 py-1.5 hover:bg-black/5">↑ 上移</button>
+        <button data-action="down" class="block w-full text-left px-3 py-1.5 hover:bg-black/5">↓ 下移</button>
+        <button data-action="del" class="block w-full text-left px-3 py-1.5 hover:bg-black/5" style="color: var(--color-warm)">× 删除此行</button>
+      </div>
+
+      <!-- speaker picker popover -->
+      <div id="speaker-pop" class="hidden fixed z-30 border bg-[var(--color-bg)] rounded shadow-sm text-[13px]" style="border-color: var(--color-rule); min-width: 100px"></div>
+    </>
   )}
 
   <script type="application/json" id="editor-bootstrap" set:html={JSON.stringify(editorBootstrap)}></script>
 
+  <style>
+    .lines.editing .script-line {
+      border-left: 2px solid transparent;
+      padding-left: 8px;
+      margin-left: -10px;
+      transition: border-color 0.15s, background-color 0.15s;
+    }
+    .lines.editing .script-line:hover {
+      border-left-color: var(--color-rule);
+      background-color: rgba(0,0,0,0.015);
+    }
+    .lines.editing .script-line.dirty {
+      border-left-color: var(--color-warm);
+    }
+    .lines.editing [data-role="speaker"] {
+      cursor: pointer;
+      border-bottom: 1px dashed transparent;
+    }
+    .lines.editing [data-role="speaker"]:hover {
+      border-bottom-color: var(--color-ink-faint);
+    }
+    .lines.editing [data-role="text"] {
+      cursor: text;
+      outline: none;
+      border-radius: 2px;
+    }
+    .lines.editing [data-role="text"]:focus {
+      background-color: rgba(255, 220, 130, 0.18);
+    }
+    .row-menu-trigger {
+      position: absolute;
+      right: -8px;
+      top: 4px;
+      width: 22px;
+      height: 22px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--color-ink-faint);
+      font-size: 14px;
+      border-radius: 3px;
+    }
+    .row-menu-trigger:hover {
+      background-color: rgba(0,0,0,0.06);
+      color: var(--color-ink);
+    }
+    .lines.editing .script-line:hover .row-menu-trigger {
+      display: flex;
+    }
+    .lines.editing .script-line .row-menu-trigger.pinned {
+      display: flex;
+    }
+  </style>
+
   <script>
+    // language toggle (always on)
     document.querySelectorAll<HTMLButtonElement>('.lang-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         const container = btn.closest<HTMLElement>('.script-container');
@@ -241,188 +276,280 @@ const editorBootstrap = {
       });
     });
 
-    // ----- Editor (dev-only) ----------------------------------------------
+    // ====== Editor (dev-only) ===========================================
 
-    type Utterance = {
-      id: string;
-      t: string;
-      speaker: string;
-      text: string;
-      translations?: Record<string, string>;
-    };
-    type Bootstrap = {
-      slug: string;
-      utterances: Utterance[];
-      speakerOptions: string[];
-      sourceLang: string;
-      dialoguePath: string;
-      entryPath: string;
-      githubEditDialogue: string;
-    };
+    type Utt = { id: string; t: string; speaker: string; text: string; translations?: Record<string, string> };
+    type Boot = { slug: string; utterances: Utt[]; speakerOptions: string[]; sourceLang: string; dialoguePath: string; entryPath: string };
 
-    const bootstrapEl = document.getElementById('editor-bootstrap');
-    if (bootstrapEl) {
-      const data: Bootstrap = JSON.parse(bootstrapEl.textContent || '{}');
+    const bootEl = document.getElementById('editor-bootstrap');
+    if (bootEl) {
+      const boot: Boot = JSON.parse(bootEl.textContent || '{}');
+      const linesEl = document.getElementById('lines') as HTMLElement | null;
       const enterBtn = document.getElementById('enter-edit') as HTMLButtonElement | null;
-      const editMode = document.getElementById('edit-mode') as HTMLDivElement | null;
-      const viewMode = document.getElementById('view-mode') as HTMLDivElement | null;
-      const toolbar = document.getElementById('edit-toolbar') as HTMLDivElement | null;
-      const statusEl = document.getElementById('edit-status');
-      const addEndBtn = document.getElementById('edit-add-end');
+      const toolbar = document.getElementById('edit-toolbar') as HTMLElement | null;
+      const statusEl = document.getElementById('edit-status') as HTMLElement | null;
       const cancelBtn = document.getElementById('edit-cancel');
       const saveBtn = document.getElementById('edit-save');
-      const deleteBtn = document.getElementById('delete-entry');
+      const deleteEntryBtn = document.getElementById('edit-delete');
+      const rowMenu = document.getElementById('row-menu') as HTMLElement | null;
+      const speakerPop = document.getElementById('speaker-pop') as HTMLElement | null;
 
-      let working: Utterance[] = JSON.parse(JSON.stringify(data.utterances));
+      // working copy keyed by id
+      let working: Utt[] = JSON.parse(JSON.stringify(boot.utterances));
+      let editing = false;
       let dirty = false;
 
-      const setStatus = (msg: string) => { if (statusEl) statusEl.textContent = msg; };
-      const markDirty = () => { dirty = true; setStatus('未保存改动'); };
+      const setStatus = (s: string) => { if (statusEl) statusEl.textContent = s; };
+
+      const findIdx = (id: string) => working.findIndex((u) => u.id === id);
 
       const newId = () => {
         const used = new Set(working.map((u) => u.id));
-        for (let n = 1; ; n++) {
-          const id = `u${n}`;
-          if (!used.has(id)) return id;
+        for (let n = 1; ; n++) { const id = `u${n}`; if (!used.has(id)) return id; }
+      };
+
+      const markDirty = () => {
+        const changed = JSON.stringify(working) !== JSON.stringify(boot.utterances);
+        dirty = changed;
+        setStatus(changed ? '有未保存改动' : '·');
+      };
+
+      // ----- in-place rendering -----
+      const renderLineDom = (u: Utt) => {
+        const row = linesEl?.querySelector(`.script-line[data-uid="${cssEscape(u.id)}"]`) as HTMLElement | null;
+        if (!row) return;
+        const speakerEl = row.querySelector('[data-role="speaker"]') as HTMLElement | null;
+        const textEl = row.querySelector('[data-role="text"]') as HTMLElement | null;
+        const timeEl = row.querySelector('[data-role="time"]') as HTMLElement | null;
+        if (speakerEl) speakerEl.textContent = u.speaker;
+        if (textEl) {
+          const langSpans = Array.from(textEl.querySelectorAll<HTMLElement>('[lang]'));
+          const sourceSpan = langSpans.find((s) => s.lang === boot.sourceLang) || langSpans[0];
+          if (sourceSpan) sourceSpan.textContent = u.text;
+        }
+        if (timeEl) timeEl.textContent = u.t;
+        if (JSON.stringify(u) !== JSON.stringify(boot.utterances[findIdxOriginal(u.id)] ?? null)) {
+          row.classList.add('dirty');
+        } else {
+          row.classList.remove('dirty');
         }
       };
 
-      const render = () => {
-        if (!editMode) return;
-        editMode.innerHTML = '';
-        working.forEach((u, i) => {
-          const row = document.createElement('div');
-          row.className = 'flex gap-2 py-1.5 items-start text-[14px]';
-          row.dataset.idx = String(i);
+      const findIdxOriginal = (id: string) => boot.utterances.findIndex((u) => u.id === id);
 
-          const ts = document.createElement('input');
-          ts.type = 'text';
-          ts.value = u.t;
-          ts.className = 'w-20 text-[11px] tabular-nums px-1 py-0.5 border rounded bg-transparent';
-          ts.style.borderColor = 'var(--color-rule)';
-          ts.title = '时间戳 HH:MM:SS';
-          ts.addEventListener('input', () => { working[i].t = ts.value; markDirty(); });
+      const cssEscape = (s: string) => (window as any).CSS?.escape ? (window as any).CSS.escape(s) : s.replace(/[^a-zA-Z0-9_-]/g, (c) => `\\${c}`);
 
-          const sp = document.createElement('select');
-          sp.className = 'w-24 px-1 py-0.5 border rounded bg-transparent text-[13px]';
-          sp.style.borderColor = 'var(--color-rule)';
-          for (const opt of data.speakerOptions) {
-            const o = document.createElement('option');
-            o.value = opt; o.textContent = opt;
-            if (opt === u.speaker) o.selected = true;
-            sp.appendChild(o);
-          }
-          if (!data.speakerOptions.includes(u.speaker)) {
-            const o = document.createElement('option');
-            o.value = u.speaker; o.textContent = u.speaker; o.selected = true;
-            sp.appendChild(o);
-          }
-          sp.addEventListener('change', () => { working[i].speaker = sp.value; markDirty(); });
+      const buildRowFor = (u: Utt, idx: number): HTMLElement => {
+        const tpl = document.createElement('div');
+        const sourceSpanLang = boot.sourceLang;
+        tpl.innerHTML = `
+          <div class="script-line group relative flex gap-4 py-1" data-uid="${escAttr(u.id)}" data-speaker-idx="${idx % 2}">
+            <span class="speaker shrink-0 w-20 text-right text-[13px] font-medium" style="line-height: 1.85" data-role="speaker">${escHtml(u.speaker)}</span>
+            <span class="text-[11px] tabular-nums shrink-0 w-14 pt-1" style="color: var(--color-ink-faint)" data-role="time">${escHtml(u.t)}</span>
+            <span class="flex-1 line-text text-[15px] leading-[1.85]" data-role="text">
+              <span class="text-${sourceSpanLang}" lang="${sourceSpanLang}">${escHtml(u.text)}</span>
+            </span>
+            <span class="row-menu-trigger" title="行操作">⋮</span>
+          </div>
+        `;
+        return tpl.firstElementChild as HTMLElement;
+      };
 
-          const tx = document.createElement('textarea');
-          tx.value = u.text;
-          tx.rows = 1;
-          tx.className = 'flex-1 px-2 py-1 border rounded bg-transparent leading-relaxed';
-          tx.style.borderColor = 'var(--color-rule)';
-          tx.style.resize = 'vertical';
-          tx.addEventListener('input', () => {
-            working[i].text = tx.value;
-            tx.style.height = 'auto';
-            tx.style.height = tx.scrollHeight + 'px';
-            markDirty();
+      const escHtml = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' } as any)[c]);
+      const escAttr = (s: string) => escHtml(s);
+
+      // attach editor handlers to a single .script-line
+      const wireRow = (row: HTMLElement) => {
+        const uid = row.dataset.uid!;
+        const speakerEl = row.querySelector('[data-role="speaker"]') as HTMLElement | null;
+        const textEl = row.querySelector('[data-role="text"]') as HTMLElement | null;
+        let trigger = row.querySelector('.row-menu-trigger') as HTMLElement | null;
+        if (!trigger) {
+          trigger = document.createElement('span');
+          trigger.className = 'row-menu-trigger';
+          trigger.textContent = '⋮';
+          trigger.title = '行操作';
+          row.appendChild(trigger);
+        }
+        speakerEl?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openSpeakerPicker(uid, speakerEl);
+        });
+        if (textEl) {
+          textEl.contentEditable = 'true';
+          textEl.spellcheck = false;
+          textEl.addEventListener('input', () => {
+            const idx = findIdx(uid);
+            if (idx >= 0) {
+              // Pull source-lang span text only
+              const sourceSpan = textEl.querySelector(`[lang="${boot.sourceLang}"]`) as HTMLElement | null;
+              const newText = (sourceSpan?.textContent ?? textEl.textContent ?? '').replace(/\s+$/, '');
+              working[idx].text = newText;
+              row.classList.add('dirty');
+              markDirty();
+            }
           });
-          // auto-grow on initial render
-          requestAnimationFrame(() => {
-            tx.style.height = 'auto';
-            tx.style.height = tx.scrollHeight + 'px';
-          });
-
-          const btnBox = document.createElement('div');
-          btnBox.className = 'flex flex-col gap-1';
-          const mkBtn = (label: string, onClick: () => void, title: string) => {
-            const b = document.createElement('button');
-            b.type = 'button';
-            b.textContent = label;
-            b.title = title;
-            b.className = 'w-7 h-6 text-[11px] border rounded';
-            b.style.borderColor = 'var(--color-rule)';
-            b.addEventListener('click', onClick);
-            return b;
-          };
-          const addBelow = mkBtn('+', () => {
-            working.splice(i + 1, 0, {
-              id: newId(), t: u.t, speaker: u.speaker, text: '',
-            });
-            markDirty(); render();
-          }, '在下方插入');
-          const upBtn = mkBtn('↑', () => {
-            if (i === 0) return;
-            [working[i - 1], working[i]] = [working[i], working[i - 1]];
-            markDirty(); render();
-          }, '上移');
-          const downBtn = mkBtn('↓', () => {
-            if (i === working.length - 1) return;
-            [working[i + 1], working[i]] = [working[i], working[i + 1]];
-            markDirty(); render();
-          }, '下移');
-          const delBtn = mkBtn('×', () => {
-            if (!confirm('删除这一行？')) return;
-            working.splice(i, 1);
-            markDirty(); render();
-          }, '删除');
-
-          btnBox.append(addBelow, upBtn, downBtn, delBtn);
-          row.append(ts, sp, tx, btnBox);
-          editMode.appendChild(row);
+        }
+        trigger?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openRowMenu(uid, trigger as HTMLElement);
         });
       };
 
+      // ----- speaker picker popover -----
+      let pickerForUid: string | null = null;
+      const openSpeakerPicker = (uid: string, anchor: HTMLElement) => {
+        if (!speakerPop) return;
+        pickerForUid = uid;
+        speakerPop.innerHTML = '';
+        for (const opt of boot.speakerOptions) {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.textContent = opt;
+          b.className = 'block w-full text-left px-3 py-1.5 hover:bg-black/5';
+          b.addEventListener('click', () => {
+            const idx = findIdx(uid);
+            if (idx >= 0) {
+              working[idx].speaker = opt;
+              const row = linesEl?.querySelector(`.script-line[data-uid="${cssEscape(uid)}"]`) as HTMLElement | null;
+              const speakerEl = row?.querySelector('[data-role="speaker"]') as HTMLElement | null;
+              if (speakerEl) speakerEl.textContent = opt;
+              row?.classList.add('dirty');
+              markDirty();
+            }
+            closePopups();
+          });
+          speakerPop.appendChild(b);
+        }
+        const r = anchor.getBoundingClientRect();
+        speakerPop.style.left = `${r.left}px`;
+        speakerPop.style.top = `${r.bottom + 4}px`;
+        speakerPop.classList.remove('hidden');
+      };
+
+      // ----- row menu popover -----
+      let menuForUid: string | null = null;
+      let menuTrigger: HTMLElement | null = null;
+      const openRowMenu = (uid: string, anchor: HTMLElement) => {
+        if (!rowMenu) return;
+        menuForUid = uid;
+        menuTrigger?.classList.remove('pinned');
+        menuTrigger = anchor;
+        anchor.classList.add('pinned');
+        const r = anchor.getBoundingClientRect();
+        rowMenu.style.left = `${Math.min(r.left, window.innerWidth - 160)}px`;
+        rowMenu.style.top = `${r.bottom + 4}px`;
+        rowMenu.classList.remove('hidden');
+      };
+
+      rowMenu?.querySelectorAll<HTMLButtonElement>('button[data-action]').forEach((b) => {
+        b.addEventListener('click', () => {
+          if (!menuForUid) return;
+          const action = b.dataset.action;
+          const uid = menuForUid;
+          handleRowAction(action!, uid);
+          closePopups();
+        });
+      });
+
+      const handleRowAction = (action: string, uid: string) => {
+        const idx = findIdx(uid);
+        if (idx < 0) return;
+        if (action === 'add-above' || action === 'add-below') {
+          const cur = working[idx];
+          const insertAt = action === 'add-above' ? idx : idx + 1;
+          const fresh: Utt = {
+            id: newId(),
+            t: cur.t,
+            speaker: cur.speaker,
+            text: '',
+          };
+          working.splice(insertAt, 0, fresh);
+          // insert DOM
+          const newRow = buildRowFor(fresh, insertAt);
+          const curRow = linesEl?.querySelector(`.script-line[data-uid="${cssEscape(uid)}"]`) as HTMLElement | null;
+          if (curRow && linesEl) {
+            if (action === 'add-above') curRow.before(newRow);
+            else curRow.after(newRow);
+            wireRow(newRow);
+            (newRow.querySelector('[data-role="text"]') as HTMLElement | null)?.focus();
+          }
+          markDirty();
+        } else if (action === 'up' || action === 'down') {
+          const swap = action === 'up' ? idx - 1 : idx + 1;
+          if (swap < 0 || swap >= working.length) return;
+          [working[idx], working[swap]] = [working[swap], working[idx]];
+          // swap DOM
+          const a = linesEl?.querySelector(`.script-line[data-uid="${cssEscape(working[idx].id)}"]`) as HTMLElement | null;
+          const b = linesEl?.querySelector(`.script-line[data-uid="${cssEscape(working[swap].id)}"]`) as HTMLElement | null;
+          if (a && b && linesEl) {
+            if (action === 'up') a.before(b);
+            else a.after(b);
+          }
+          markDirty();
+        } else if (action === 'del') {
+          if (!confirm('删除这一行？')) return;
+          working.splice(idx, 1);
+          const row = linesEl?.querySelector(`.script-line[data-uid="${cssEscape(uid)}"]`) as HTMLElement | null;
+          row?.remove();
+          markDirty();
+        }
+      };
+
+      const closePopups = () => {
+        rowMenu?.classList.add('hidden');
+        speakerPop?.classList.add('hidden');
+        menuTrigger?.classList.remove('pinned');
+        menuTrigger = null;
+        menuForUid = null;
+        pickerForUid = null;
+      };
+      document.addEventListener('click', (e) => {
+        if (rowMenu && !rowMenu.contains(e.target as Node) && speakerPop && !speakerPop.contains(e.target as Node)) {
+          closePopups();
+        }
+      });
+      window.addEventListener('scroll', closePopups, true);
+      window.addEventListener('resize', closePopups);
+
+      // ----- enter / exit edit mode -----
       const enterEdit = () => {
-        if (!editMode || !viewMode || !toolbar) return;
-        viewMode.classList.add('hidden');
-        editMode.classList.remove('hidden');
+        if (!linesEl || !toolbar) return;
+        editing = true;
+        linesEl.classList.add('editing');
         toolbar.classList.remove('hidden');
-        document.body.style.paddingBottom = '80px';
-        setStatus('编辑中');
-        dirty = false;
-        render();
+        document.body.style.paddingBottom = '64px';
+        setStatus('·');
+        // wire each existing row
+        linesEl.querySelectorAll<HTMLElement>('.script-line').forEach(wireRow);
       };
 
       const exitEdit = (force = false) => {
         if (dirty && !force && !confirm('有未保存改动，确定退出？')) return;
-        if (!editMode || !viewMode || !toolbar) return;
-        editMode.classList.add('hidden');
-        viewMode.classList.remove('hidden');
-        toolbar.classList.add('hidden');
-        document.body.style.paddingBottom = '';
-        working = JSON.parse(JSON.stringify(data.utterances));
-        dirty = false;
+        location.reload(); // simplest: reload to discard any DOM mess
       };
 
       const save = async () => {
         setStatus('保存中…');
         try {
-          const r = await fetch(`/api/dev/dialogue/${encodeURIComponent(data.slug)}`, {
+          const r = await fetch(`/api/dev/dialogue/${encodeURIComponent(boot.slug)}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ utterances: working }),
           });
           if (!r.ok) throw new Error(`HTTP ${r.status}: ${await r.text()}`);
-          const json = await r.json();
-          setStatus(`已保存 (${json.bytes ?? '?'} bytes)`);
-          dirty = false;
-          // Reload so server-rendered view picks up the new yaml.
-          setTimeout(() => location.reload(), 400);
+          setStatus('已保存，刷新中…');
+          setTimeout(() => location.reload(), 300);
         } catch (e) {
           setStatus('保存失败');
-          alert(`保存失败:\n${(e as Error).message}\n\n（dev API 仅在 \`npm run dev\` 时可用）`);
+          alert(`保存失败:\n${(e as Error).message}\n\n（dev API 仅在 npm run dev 模式下可用）`);
         }
       };
 
-      const del = async () => {
-        if (!confirm(`确定删除条目 "${data.slug}"？\n\n会删除：\n- ${data.entryPath}\n- ${data.dialoguePath}\n\n仅本地，需 git commit 后才推送。`)) return;
+      const deleteEntry = async () => {
+        if (!confirm(`确定删除整个条目？\n\n会删除：\n- ${boot.entryPath}\n- ${boot.dialoguePath}`)) return;
         try {
-          const r = await fetch(`/api/dev/entry/${encodeURIComponent(data.slug)}`, { method: 'DELETE' });
+          const r = await fetch(`/api/dev/entry/${encodeURIComponent(boot.slug)}`, { method: 'DELETE' });
           if (!r.ok) throw new Error(`HTTP ${r.status}: ${await r.text()}`);
           location.href = '/web/manzai/';
         } catch (e) {
@@ -433,17 +560,7 @@ const editorBootstrap = {
       enterBtn?.addEventListener('click', enterEdit);
       cancelBtn?.addEventListener('click', () => exitEdit());
       saveBtn?.addEventListener('click', save);
-      deleteBtn?.addEventListener('click', del);
-      addEndBtn?.addEventListener('click', () => {
-        const last = working[working.length - 1];
-        working.push({
-          id: newId(),
-          t: last?.t ?? '00:00:00',
-          speaker: last?.speaker ?? data.speakerOptions[0] ?? 'speaker',
-          text: '',
-        });
-        markDirty(); render();
-      });
+      deleteEntryBtn?.addEventListener('click', deleteEntry);
     }
   </script>
 </Base>

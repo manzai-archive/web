@@ -1,11 +1,11 @@
 ---
-const { speaker, time, texts, idx } = Astro.props;
+const { speaker, time, texts, idx, uid } = Astro.props;
 const entries = Object.entries(texts) as [string, string][];
 ---
-<div class="script-line flex gap-4 py-1" data-speaker-idx={idx % 2}>
-  <span class="speaker shrink-0 w-20 text-right text-[13px] font-medium" style="line-height: 1.85">{speaker}</span>
-  <span class="text-[11px] tabular-nums shrink-0 w-14 pt-1" style="color: var(--color-ink-faint)">{time}</span>
-  <span class="flex-1 line-text text-[15px] leading-[1.85]">
+<div class="script-line group relative flex gap-4 py-1" data-speaker-idx={idx % 2} data-uid={uid}>
+  <span class="speaker shrink-0 w-20 text-right text-[13px] font-medium" style="line-height: 1.85" data-role="speaker">{speaker}</span>
+  <span class="text-[11px] tabular-nums shrink-0 w-14 pt-1" style="color: var(--color-ink-faint)" data-role="time">{time}</span>
+  <span class="flex-1 line-text text-[15px] leading-[1.85]" data-role="text">
     {entries.map(([lang, text]) => (
       <span class={`text-${lang}`} lang={lang}>{text}</span>
     ))}
