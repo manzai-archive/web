@@ -30,7 +30,7 @@ const formLabel = FORM_LABEL[entry.data.form] ?? entry.data.form;
       <span class="ml-auto tabular-nums">{entry.data.source.uploaded_at}</span>
     )}
   </div>
-  <div class="font-mincho text-lg leading-snug group-hover:text-[var(--color-accent)] transition-colors" lang={entry.data.language}>
+  <div class="text-lg font-medium leading-snug group-hover:text-[var(--color-accent)] transition-colors" lang={entry.data.language}>
     {entry.data.title}
   </div>
   {(entry.data.tags.length > 0 || entry.data.status === 'draft') && (
