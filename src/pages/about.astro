@@ -2,33 +2,44 @@
 import Base from '../layouts/Base.astro';
 ---
 <Base title="关于 · 漫才档案">
-  <h1 class="text-2xl font-bold mb-4">关于本站</h1>
-  <p class="mb-3">面向语言学习者与喜剧研究者的漫才剧本档案。</p>
-  <ul class="list-disc pl-6 mb-6 text-sm space-y-1">
+  <h1 class="text-3xl mb-6">关于本站</h1>
+
+  <p class="mb-3 text-[15px] leading-relaxed">
+    面向语言学习者与喜剧研究者的开放档案。收录漫才、相声、单口、コント 等喜剧作品的转写、说话人标注、原中双语翻译。
+  </p>
+  <ul class="list-disc pl-5 mb-8 text-[14px] space-y-1.5" style="color: var(--color-ink-soft)">
     <li>仅存文字转写与元数据；不托管任何音视频文件</li>
-    <li>每条目均链回原视频，鼓励观看原片支持创作者</li>
-    <li>转写由 Whisper + pyannote 自动生成，再人工校对</li>
+    <li>每条目链回原视频，鼓励观看原片支持创作者</li>
+    <li>非中文作品自动翻译为中文，可在阅读时切换原文 / 中文 / 双语</li>
     <li>非营利、无广告、无追踪</li>
   </ul>
 
-  <h2 class="text-lg font-semibold mb-2">下架申请</h2>
-  <p class="text-sm mb-6">
+  <h2 class="text-lg mb-2">下架申请</h2>
+  <p class="text-[14px] mb-8" style="color: var(--color-ink-soft)">
     版权方请通过
-    <a class="underline" href="https://github.com/manzai-archive/web/issues/new" target="_blank" rel="noopener">GitHub Issue</a>
+    <a class="underline" href="https://github.com/manzai-archive/web/issues/new/choose" target="_blank" rel="noopener">GitHub Issue</a>
     联系，72 小时内响应。详见
     <a class="underline" href="https://github.com/manzai-archive/web/blob/main/NOTICE.md" target="_blank" rel="noopener">NOTICE.md</a>。
   </p>
 
-  <h2 class="text-lg font-semibold mb-2">技术栈</h2>
-  <ul class="list-disc pl-6 text-sm space-y-1 mb-6">
-    <li>站点: Astro + Tailwind + Pagefind, GitHub Pages</li>
-    <li>转写: faster-whisper (large-v3) + pyannote 3.1</li>
-    <li>来源: <a class="underline" href="https://github.com/manzai-archive/pipeline" target="_blank" rel="noopener">manzai-archive/pipeline</a></li>
+  <h2 class="text-lg mb-2">技术栈</h2>
+  <ul class="list-disc pl-5 mb-8 text-[14px] space-y-1.5" style="color: var(--color-ink-soft)">
+    <li><b>站点</b>：Astro 6 + Tailwind 4 + Pagefind，GitHub Pages 静态部署</li>
+    <li><b>转写 + 说话人识别</b>：qwen3-omni-flash 多模态（DashScope）— 从音频直接输出 speaker-tagged 段落，含演出形式 / 演员角色</li>
+    <li><b>翻译</b>：qwen-plus 文本模型，按行对齐</li>
+    <li><b>抓取</b>：yt-dlp（YouTube / B 站），ffmpeg 切片</li>
+    <li><b>fallback ASR</b>：faster-whisper / SenseVoice / mlx-whisper</li>
+    <li><b>诊断 diarization</b>：pyannote.audio 4.x（需要时）</li>
   </ul>
 
-  <h2 class="text-lg font-semibold mb-2">维护</h2>
-  <p class="text-sm">
-    <a class="underline" href="https://github.com/enkerewpo" target="_blank" rel="noopener">wheatfox</a>
-    （欢迎 PR）
+  <h2 class="text-lg mb-2">仓库</h2>
+  <ul class="list-disc pl-5 mb-8 text-[14px] space-y-1.5" style="color: var(--color-ink-soft)">
+    <li><a class="underline" href="https://github.com/manzai-archive/web" target="_blank" rel="noopener">manzai-archive/web</a> — 站点 + 内容</li>
+    <li><a class="underline" href="https://github.com/manzai-archive/pipeline" target="_blank" rel="noopener">manzai-archive/pipeline</a> — 抓取 + 转写流水线（GPU Docker）</li>
+  </ul>
+
+  <h2 class="text-lg mb-2">维护</h2>
+  <p class="text-[14px]" style="color: var(--color-ink-soft)">
+    <a class="underline" href="https://github.com/enkerewpo" target="_blank" rel="noopener">wheatfox</a> · 欢迎 PR
   </p>
 </Base>

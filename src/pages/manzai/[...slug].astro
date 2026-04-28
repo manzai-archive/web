@@ -55,7 +55,7 @@ const lines = bodyMatches.map((m, i) => {
 
 const speakerOrder = Array.from(new Set(lines.map((l) => l.speaker)));
 
-const langLabel: Record<string, string> = { zh: '中', ja: '日', en: 'EN' };
+const langLabel: Record<string, string> = { zh: '中', ja: '日', en: 'EN', auto: '原文' };
 
 const perfRef = entry.data.performers[0];
 const perf = perfRef ? await getEntry(perfRef) : null;
