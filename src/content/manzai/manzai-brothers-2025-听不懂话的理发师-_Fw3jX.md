@@ -1,5 +1,5 @@
 ---
-title: 「骗假不留」
+title: 「听不懂话的理发师」
 performers:
 - manzai-brothers
 form: manzai
