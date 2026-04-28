@@ -178,7 +178,7 @@ const editorBootstrap = {
 
   {isDev && (
     <>
-      <div id="edit-toolbar" class="hidden fixed bottom-0 left-0 right-0 border-t backdrop-blur z-20" style="background-color: rgba(251, 249, 244, 0.95); border-color: var(--color-rule)">
+      <div id="edit-toolbar" class="hidden fixed bottom-0 left-0 right-0 border-t backdrop-blur z-20" style="background-color: var(--color-bg-overlay); border-color: var(--color-rule)">
         <div class="max-w-3xl mx-auto px-6 py-3 flex items-center gap-2 text-[13px]">
           <span class="text-[var(--color-ink-faint)]">编辑模式</span>
           <span id="edit-status" class="text-[var(--color-ink-faint)]">·</span>
@@ -194,10 +194,10 @@ const editorBootstrap = {
       </div>
 
       <div id="row-menu" class="hidden fixed z-30 border bg-[var(--color-bg)] rounded shadow-md text-[13px] py-1" style="border-color: var(--color-rule); min-width: 150px">
-        <button data-action="add-above" class="block w-full text-left px-3 py-1.5 hover:bg-black/5">↑ 上方插入</button>
-        <button data-action="add-below" class="block w-full text-left px-3 py-1.5 hover:bg-black/5">↓ 下方插入</button>
+        <button data-action="add-above" class="block w-full text-left px-3 py-1.5 hover:bg-[var(--color-hover-tint)]">↑ 上方插入</button>
+        <button data-action="add-below" class="block w-full text-left px-3 py-1.5 hover:bg-[var(--color-hover-tint)]">↓ 下方插入</button>
         <div class="my-1 border-t" style="border-color: var(--color-rule)"></div>
-        <button data-action="del" class="block w-full text-left px-3 py-1.5 hover:bg-black/5" style="color: var(--color-warm)">× 删除此行</button>
+        <button data-action="del" class="block w-full text-left px-3 py-1.5 hover:bg-[var(--color-hover-tint)]" style="color: var(--color-warm)">× 删除此行</button>
       </div>
 
       <div id="speaker-pop" class="hidden fixed z-30 border bg-[var(--color-bg)] rounded shadow-md text-[13px] py-1" style="border-color: var(--color-rule); min-width: 110px"></div>
@@ -215,13 +215,13 @@ const editorBootstrap = {
       margin: 0;
       border: 1px solid var(--color-rule);
       border-radius: 4px;
-      background-color: rgba(255,255,255,0.4);
+      background-color: var(--color-row-card);
       transition: border-color 0.15s, background-color 0.15s, box-shadow 0.15s;
     }
     .lines.editing.space-y-3 > * + * { margin-top: 6px; }
     .lines.editing .script-line:hover {
       border-color: var(--color-ink-faint);
-      background-color: rgba(255,255,255,0.7);
+      background-color: var(--color-hover-tint);
       box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     }
     .lines.editing .script-line.dirty {
@@ -255,7 +255,7 @@ const editorBootstrap = {
       transition: background-color 0.12s;
     }
     .lines.editing [data-role="speaker"]:hover {
-      background-color: rgba(0,0,0,0.06);
+      background-color: var(--color-hover-tint);
       text-decoration-color: var(--color-ink);
     }
     .lines.editing [data-role="text"] {
@@ -267,11 +267,11 @@ const editorBootstrap = {
       transition: background-color 0.12s;
     }
     .lines.editing [data-role="text"]:hover {
-      background-color: rgba(255, 220, 130, 0.10);
+      background-color: var(--color-edit-tint);
     }
     .lines.editing [data-role="text"]:focus {
-      background-color: rgba(255, 220, 130, 0.22);
-      box-shadow: 0 0 0 1px rgba(180,140,60,0.4);
+      background-color: var(--color-edit-tint-strong);
+      box-shadow: 0 0 0 1px var(--color-edit-ring);
     }
     .lines.editing [data-role="time"] {
       cursor: text;
@@ -286,16 +286,16 @@ const editorBootstrap = {
       transition: background-color 0.12s;
     }
     .lines.editing [data-role="time"]:hover {
-      background-color: rgba(0,0,0,0.05);
+      background-color: var(--color-hover-tint);
     }
     .lines.editing [data-role="time"]:focus {
-      background-color: rgba(255, 220, 130, 0.22);
+      background-color: var(--color-edit-tint-strong);
       text-decoration-color: transparent;
-      box-shadow: 0 0 0 1px rgba(180,140,60,0.4);
+      box-shadow: 0 0 0 1px var(--color-edit-ring);
     }
     .lines.editing [data-role="time"].invalid {
       box-shadow: 0 0 0 1px var(--color-warm);
-      background-color: rgba(220, 80, 80, 0.08);
+      background-color: rgba(200, 85, 61, 0.10);
     }
 
     .row-drag-handle, .row-menu-trigger {
@@ -331,12 +331,12 @@ const editorBootstrap = {
       opacity: 1;
     }
     .row-drag-handle:hover, .row-menu-trigger:hover {
-      background-color: rgba(0,0,0,0.08);
+      background-color: var(--color-hover-tint-strong);
       color: var(--color-ink);
       opacity: 1 !important;
     }
     .row-menu-trigger.pinned {
-      background-color: rgba(0,0,0,0.08);
+      background-color: var(--color-hover-tint-strong);
       color: var(--color-ink);
       opacity: 1 !important;
     }
@@ -619,7 +619,7 @@ const editorBootstrap = {
           const b = document.createElement('button');
           b.type = 'button';
           b.textContent = opt;
-          b.className = 'block w-full text-left px-3 py-1.5 hover:bg-black/5';
+          b.className = 'block w-full text-left px-3 py-1.5 hover:bg-[var(--color-hover-tint)]';
           b.addEventListener('click', () => {
             const idx = findIdx(uid);
             if (idx >= 0) {

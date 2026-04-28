@@ -43,7 +43,7 @@ import Base from '../layouts/Base.astro';
 
       <div>
         <div class="font-medium mb-2 text-[var(--color-ink)]">本地编辑（推荐）</div>
-        <pre class="text-[12px] p-2 rounded bg-black/5 overflow-x-auto"><code>git clone https://github.com/manzai-archive/web
+        <pre class="text-[12px] p-2 rounded bg-[var(--color-hover-tint)] overflow-x-auto"><code>git clone https://github.com/manzai-archive/web
 cd web
 npm install
 npm run dev</code></pre>
@@ -66,7 +66,7 @@ npm run dev</code></pre>
         <p>
           如果想从一个 YouTube / B站 链接自动生成一个新条目，需要 <a class="underline" href="https://github.com/manzai-archive/pipeline" target="_blank" rel="noopener">pipeline 仓库</a>。它在 GPU 机器上跑，封装在 Docker 里：
         </p>
-        <pre class="text-[12px] p-2 rounded bg-black/5 overflow-x-auto mt-2"><code>git clone https://github.com/manzai-archive/pipeline
+        <pre class="text-[12px] p-2 rounded bg-[var(--color-hover-tint)] overflow-x-auto mt-2"><code>git clone https://github.com/manzai-archive/pipeline
 git clone https://github.com/manzai-archive/web    # 必须并排放
 cd pipeline
 cp .env.example .env

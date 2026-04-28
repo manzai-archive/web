@@ -29,18 +29,59 @@
 :root {
   --speaker-a: #3f5bcb;
   --speaker-b: #c8553d;
+  color-scheme: light;
+
+  /* Composite tokens for translucent overlays / hover tints / edit
+     highlights. Re-defined for dark mode below. */
+  --color-bg-overlay: rgba(251, 249, 244, 0.94);
+  --color-row-card:    rgba(255, 255, 255, 0.50);
+  --color-hover-tint:  rgba(0, 0, 0, 0.06);
+  --color-hover-tint-strong: rgba(0, 0, 0, 0.10);
+  --color-edit-tint:   rgba(255, 220, 130, 0.18);
+  --color-edit-tint-strong: rgba(255, 220, 130, 0.28);
+  --color-edit-ring:   rgba(180, 140, 60, 0.45);
+  --color-modal-backdrop: rgba(0, 0, 0, 0.4);
+}
+
+/* Dark mode — toggled via [data-theme="dark"] on <html>. Defaults follow
+   system preference; user choice is persisted in localStorage. Palette
+   keeps the warm Japanese-minimal feel (warm dark instead of pure black). */
+[data-theme="dark"] {
+  --color-bg:        #1c1a17;
+  --color-card:      #25231f;
+  --color-ink:       #e8e3d8;
+  --color-ink-soft:  #a8a39a;
+  --color-ink-faint: #6b6760;
+  --color-rule:      #3a3631;
+  --color-accent:    #7c93f0;
+  --color-accent-soft: #2a2f4a;
+  --color-warm:      #e07d63;
+  --speaker-a: #7c93f0;
+  --speaker-b: #e07d63;
+  color-scheme: dark;
+
+  --color-bg-overlay:  rgba(28, 26, 23, 0.92);
+  --color-row-card:     rgba(255, 255, 255, 0.025);
+  --color-hover-tint:   rgba(255, 255, 255, 0.07);
+  --color-hover-tint-strong: rgba(255, 255, 255, 0.12);
+  --color-edit-tint:    rgba(220, 180, 80, 0.14);
+  --color-edit-tint-strong: rgba(220, 180, 80, 0.26);
+  --color-edit-ring:    rgba(220, 180, 80, 0.45);
+  --color-modal-backdrop: rgba(0, 0, 0, 0.6);
 }
 
 html {
   background: var(--color-bg);
   color: var(--color-ink);
   font-size: 16px;
+  transition: background-color 0.18s ease, color 0.18s ease;
 }
 
 body {
   background: var(--color-bg);
   color: var(--color-ink);
   font-feature-settings: "palt" 1;  /* tighter Japanese kerning */
+  transition: background-color 0.18s ease, color 0.18s ease;
 }
 
 /* Headings: same sans as body, just weight + size differ. Japanese
@@ -102,6 +143,13 @@ a {
 .script-container[data-display="en"] .lang-btn[data-set-lang="en"],
 .script-container[data-display="both"] .lang-btn[data-set-lang="both"] {
   background: var(--color-ink) !important;
-  color: #fff !important;
+  color: var(--color-bg) !important;
   border-color: var(--color-ink) !important;
 }
+
+/* Theme toggle: show sun in dark mode, moon in light mode (icon hints
+   what clicking will switch TO). */
+.theme-icon-sun, .theme-icon-moon { display: none; }
+[data-theme="light"] .theme-icon-moon { display: inline-block; }
+[data-theme="dark"]  .theme-icon-sun  { display: inline-block; }
+.theme-toggle:hover { background: var(--color-hover-tint); }
