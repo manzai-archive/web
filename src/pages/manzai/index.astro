@@ -6,14 +6,151 @@ import EntryCard from '../../components/EntryCard.astro';
 const all = (await getCollection('manzai')).sort((a, b) =>
   (b.data.source.uploaded_at ?? '').localeCompare(a.data.source.uploaded_at ?? '')
 );
+
+const performers = await getCollection('performers');
+const performerOptions = performers.map((p) => ({
+  slug: p.id,
+  display: p.data.display_name,
+  language: p.data.language,
+}));
+
+const isDev = import.meta.env.DEV;
 ---
-<Base title="所有剧本 · 漫才档案">
-  <section class="mb-10">
-    <h1 class="text-3xl mb-2">所有剧本</h1>
-    <p class="text-[13px]" style="color: var(--color-ink-faint)">共 {all.length} 件作品</p>
+<Base title="所有剧本 · 喜剧档案">
+  <section class="mb-10 flex items-end justify-between gap-4">
+    <div>
+      <h1 class="text-3xl mb-2">所有剧本</h1>
+      <p class="text-[13px]" style="color: var(--color-ink-faint)">共 {all.length} 件作品</p>
+    </div>
+    {isDev && (
+      <button id="open-new" type="button" class="px-3 py-1.5 border rounded text-[13px]" style="border-color: var(--color-rule); color: var(--color-ink-soft)">
+        + 新增条目（本地）
+      </button>
+    )}
   </section>
 
   <div class="border-t" style="border-color: var(--color-rule)">
     {all.map((entry) => <EntryCard entry={entry} />)}
   </div>
+
+  {isDev && (
+    <div id="new-modal" class="hidden fixed inset-0 z-30 flex items-center justify-center" style="background-color: rgba(0,0,0,0.4)">
+      <div class="bg-[var(--color-bg)] border max-w-lg w-full m-6 p-6" style="border-color: var(--color-rule)">
+        <h2 class="text-xl mb-4">新建剧本条目</h2>
+        <p class="text-[12px] mb-4" style="color: var(--color-ink-faint)">
+          手工录入文字记录的入口。直接写入本地文件 — 仅在 <code>npm run dev</code> 模式下可用。
+        </p>
+        <form id="new-form" class="space-y-3 text-[13px]">
+          <label class="block">
+            <span class="block text-[var(--color-ink-soft)] mb-1">演员组合</span>
+            <select name="performer" required class="w-full px-2 py-1 border rounded bg-transparent" style="border-color: var(--color-rule)">
+              {performerOptions.map((p) => (
+                <option value={p.slug} data-lang={p.language}>{p.display}</option>
+              ))}
+            </select>
+          </label>
+          <label class="block">
+            <span class="block text-[var(--color-ink-soft)] mb-1">作品标题</span>
+            <input name="title" required class="w-full px-2 py-1 border rounded bg-transparent" style="border-color: var(--color-rule)" placeholder="如：人間ドック" />
+          </label>
+          <label class="block">
+            <span class="block text-[var(--color-ink-soft)] mb-1">原视频链接（可选）</span>
+            <input name="url" type="url" class="w-full px-2 py-1 border rounded bg-transparent" style="border-color: var(--color-rule)" placeholder="https://..." />
+          </label>
+          <label class="block">
+            <span class="block text-[var(--color-ink-soft)] mb-1">演出形式</span>
+            <select name="form" class="w-full px-2 py-1 border rounded bg-transparent" style="border-color: var(--color-rule)">
+              <option value="manzai">漫才</option>
+              <option value="xiangsheng">相声</option>
+              <option value="standup">脱口秀</option>
+              <option value="sketch">コント / 小品</option>
+              <option value="rakugo">落語</option>
+              <option value="other">其他</option>
+            </select>
+          </label>
+          <label class="block">
+            <span class="block text-[var(--color-ink-soft)] mb-1">语言</span>
+            <input name="language" class="w-full px-2 py-1 border rounded bg-transparent" style="border-color: var(--color-rule)" placeholder="ja / zh / en …" value="ja" />
+          </label>
+          <label class="block">
+            <span class="block text-[var(--color-ink-soft)] mb-1">标签（逗号分隔）</span>
+            <input name="tags" class="w-full px-2 py-1 border rounded bg-transparent" style="border-color: var(--color-rule)" placeholder="例：寄席, 2024, 保険" />
+          </label>
+          <div class="flex justify-end gap-2 pt-2">
+            <button type="button" id="new-cancel" class="px-3 py-1 border rounded" style="border-color: var(--color-rule)">取消</button>
+            <button type="submit" class="px-3 py-1 border rounded font-medium" style="border-color: var(--color-ink); background-color: var(--color-ink); color: var(--color-bg)">创建</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )}
+
+  <script>
+    const openBtn = document.getElementById('open-new');
+    const modal = document.getElementById('new-modal');
+    const cancelBtn = document.getElementById('new-cancel');
+    const form = document.getElementById('new-form') as HTMLFormElement | null;
+
+    openBtn?.addEventListener('click', () => modal?.classList.remove('hidden'));
+    cancelBtn?.addEventListener('click', () => modal?.classList.add('hidden'));
+    modal?.addEventListener('click', (e) => {
+      if (e.target === modal) modal.classList.add('hidden');
+    });
+
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(form);
+      const performer = String(fd.get('performer') || '');
+      const title = String(fd.get('title') || '').trim();
+      const url = String(fd.get('url') || '').trim();
+      const formVal = String(fd.get('form') || 'manzai');
+      const language = String(fd.get('language') || 'ja').trim();
+      const tagsStr = String(fd.get('tags') || '');
+      const tags = tagsStr.split(',').map((t) => t.trim()).filter(Boolean);
+
+      if (!performer || !title) return;
+
+      // Slug: <performer>-<year?>-<title-snippet>-<6char-id>
+      const year = new Date().getFullYear().toString();
+      const titleSlug = title
+        .toLowerCase()
+        .replace(/[\s　]+/g, '-')
+        .replace(/[^一-鿿぀-ヿ゠-ヿa-z0-9-]+/g, '')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
+        .slice(0, 30) || 'entry';
+      const rand = Math.random().toString(36).slice(2, 8);
+      const slug = `${performer}-${year}-${titleSlug}-${rand}`;
+
+      const fm: Record<string, unknown> = {
+        title,
+        performers: [performer],
+        form: formVal,
+        source: {
+          platform: url ? (url.includes('bilibili') ? 'bilibili' : url.includes('youtube') ? 'youtube' : 'other') : 'other',
+          url: url || '',
+          fetched_at: new Date().toISOString().slice(0, 19) + '+00:00',
+          fetched_with: 'manual',
+        },
+        language,
+        tags,
+        speakers: {},
+        sensitivity: 'normal',
+        status: 'draft',
+        contributed_by: 'wheatfox',
+      };
+
+      try {
+        const r = await fetch('/api/dev/entry/new', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slug, frontmatter: fm, utterances: [] }),
+        });
+        if (!r.ok) throw new Error(`HTTP ${r.status}: ${await r.text()}`);
+        location.href = `/web/manzai/${slug}/`;
+      } catch (err) {
+        alert(`创建失败:\n${(err as Error).message}`);
+      }
+    });
+  </script>
 </Base>

@@ -13,34 +13,53 @@ const { entry } = Astro.props;
 const speakerMap: Record<string, string> = entry.data.speakers ?? {};
 const sourceLang = entry.data.language;
 
-// Load the structured dialogue (separate yaml file with the same slug as
-// this entry .md). Falls back to the legacy in-body markdown format if
-// no dialogue file exists yet.
 const dialogueEntry = await getEntry('dialogues', entry.id);
 
-type Utterance = { speaker: string; time: string; texts: Record<string, string> };
+type Utterance = {
+  id: string;
+  speaker: string;
+  time: string;
+  texts: Record<string, string>;
+};
 let lines: Utterance[] = [];
+type RawUtterance = { id: string; t: string; speaker: string; text: string; translations?: Record<string, string> };
+let rawUtterances: RawUtterance[] = [];
 
 if (dialogueEntry) {
-  for (const u of dialogueEntry.data.utterances) {
+  rawUtterances = dialogueEntry.data.utterances.map((u, i) => ({
+    id: u.id || `u${i + 1}`,
+    t: u.t,
+    speaker: u.speaker,
+    text: u.text,
+    translations: u.translations,
+  }));
+  for (const u of rawUtterances) {
     const texts: Record<string, string> = { [sourceLang]: u.text };
     for (const [lang, t] of Object.entries(u.translations ?? {})) {
       if (typeof t === 'string') texts[lang] = t;
     }
     lines.push({
+      id: u.id,
       speaker: speakerMap[u.speaker] ?? u.speaker,
       time: u.t,
       texts,
     });
   }
 } else {
-  // Legacy path: parse `**Speaker** [hh:mm:ss] text` from entry.body
+  // Legacy in-body parsing (pre-Plan-C entries)
   const lineRegex = /\*\*(.+?)\*\*\s*\[(\d{2}:\d{2}:\d{2})\]\s*(.+)/;
   const bodyMatches = entry.body
     .split('\n')
     .map((l: string) => l.match(lineRegex))
     .filter((m: RegExpMatchArray | null): m is RegExpMatchArray => m !== null);
-  lines = bodyMatches.map((m) => ({
+  rawUtterances = bodyMatches.map((m, i) => ({
+    id: `u${i + 1}`,
+    t: m[2],
+    speaker: m[1],
+    text: m[3],
+  }));
+  lines = bodyMatches.map((m, i) => ({
+    id: `u${i + 1}`,
     speaker: speakerMap[m[1]] ?? m[1],
     time: m[2],
     texts: { [sourceLang]: m[3] },
@@ -71,8 +90,35 @@ const perfRef = entry.data.performers[0];
 const perf = perfRef ? await getEntry(perfRef) : null;
 const perfName = perf?.data.display_name ?? (typeof perfRef === 'string' ? perfRef : perfRef?.id) ?? 'Unknown';
 const perfLang = perf?.data.language ?? sourceLang;
+
+// Speaker dropdown options for the editor: union of canonical members
+// (from the performer registry) and any speaker labels seen in the
+// dialogue. Keeps weird auto-generated labels usable as a fallback.
+const memberNames = (perf?.data.members ?? []).map((m: { name: string }) => m.name);
+const speakerOptions = Array.from(new Set([
+  ...memberNames,
+  ...rawUtterances.map((u) => u.speaker),
+])).filter(Boolean);
+
+const isDev = import.meta.env.DEV;
+const dialoguePath = `src/content/dialogues/${entry.id}.yaml`;
+const entryPath = `src/content/manzai/${entry.id}.md`;
+const githubBase = 'https://github.com/manzai-archive/web';
+const githubEditDialogue = `${githubBase}/edit/main/${dialoguePath}`;
+const githubEditEntry = `${githubBase}/edit/main/${entryPath}`;
+
+const editorBootstrap = {
+  slug: entry.id,
+  utterances: rawUtterances,
+  speakerOptions,
+  sourceLang,
+  dialoguePath,
+  entryPath,
+  githubEditDialogue,
+  githubEditEntry,
+};
 ---
-<Base title={`${entry.data.title} · 漫才档案`}>
+<Base title={`${entry.data.title} · 喜剧档案`}>
   <article>
     <header class="mb-10">
       <div class="flex items-baseline gap-3 text-[12px] mb-3" style="color: var(--color-ink-faint)">
@@ -104,6 +150,14 @@ const perfLang = perf?.data.language ?? sourceLang;
         {entry.data.source.uploader && <span>{entry.data.source.uploader}</span>}
         {entry.data.tags.map((t: string) => <span>#{t}</span>)}
         {entry.data.status === 'draft' && <span style="color: var(--color-warm)">未校对</span>}
+        <a class="ml-auto underline hover:text-[var(--color-ink-soft)]" href={githubEditDialogue} target="_blank" rel="noopener">
+          在 GitHub 上编辑
+        </a>
+        {isDev && (
+          <button id="enter-edit" type="button" class="px-2 py-0.5 border rounded text-[11px]" style="border-color: var(--color-rule); color: var(--color-ink-soft)">
+            编辑（本地）
+          </button>
+        )}
       </div>
     </header>
 
@@ -120,7 +174,7 @@ const perfLang = perf?.data.language ?? sourceLang;
         </div>
       )}
 
-      <div class="lines space-y-3">
+      <div id="view-mode" class="lines space-y-3">
         {lines.map((l) => (
           <SpeakerLine
             speaker={l.speaker}
@@ -130,6 +184,8 @@ const perfLang = perf?.data.language ?? sourceLang;
           />
         ))}
       </div>
+
+      {isDev && <div id="edit-mode" class="hidden"></div>}
     </div>
 
     {entry.data.sensitivity === 'high' && (
@@ -153,7 +209,28 @@ const perfLang = perf?.data.language ?? sourceLang;
         </dl>
       </details>
     )}
+
+    {isDev && (
+      <div class="mt-10 pt-4 border-t" style="border-color: var(--color-rule)">
+        <button id="delete-entry" type="button" class="text-[12px] underline" style="color: var(--color-warm)">
+          删除此条目（本地）
+        </button>
+      </div>
+    )}
   </article>
+
+  {isDev && (
+    <div id="edit-toolbar" class="hidden fixed bottom-0 left-0 right-0 border-t backdrop-blur" style="background-color: rgba(251, 249, 244, 0.95); border-color: var(--color-rule)">
+      <div class="max-w-3xl mx-auto px-6 py-3 flex items-center gap-3 text-[13px]">
+        <span id="edit-status" class="text-[var(--color-ink-faint)]">编辑中</span>
+        <button id="edit-add-end" type="button" class="ml-auto px-2 py-1 border rounded" style="border-color: var(--color-rule)">+ 末尾添加</button>
+        <button id="edit-cancel" type="button" class="px-2 py-1 border rounded" style="border-color: var(--color-rule)">取消</button>
+        <button id="edit-save" type="button" class="px-3 py-1 border rounded font-medium" style="border-color: var(--color-ink); background-color: var(--color-ink); color: var(--color-bg)">保存</button>
+      </div>
+    </div>
+  )}
+
+  <script type="application/json" id="editor-bootstrap" set:html={JSON.stringify(editorBootstrap)}></script>
 
   <script>
     document.querySelectorAll<HTMLButtonElement>('.lang-btn').forEach((btn) => {
@@ -163,5 +240,210 @@ const perfLang = perf?.data.language ?? sourceLang;
         if (container && lang) container.dataset.display = lang;
       });
     });
+
+    // ----- Editor (dev-only) ----------------------------------------------
+
+    type Utterance = {
+      id: string;
+      t: string;
+      speaker: string;
+      text: string;
+      translations?: Record<string, string>;
+    };
+    type Bootstrap = {
+      slug: string;
+      utterances: Utterance[];
+      speakerOptions: string[];
+      sourceLang: string;
+      dialoguePath: string;
+      entryPath: string;
+      githubEditDialogue: string;
+    };
+
+    const bootstrapEl = document.getElementById('editor-bootstrap');
+    if (bootstrapEl) {
+      const data: Bootstrap = JSON.parse(bootstrapEl.textContent || '{}');
+      const enterBtn = document.getElementById('enter-edit') as HTMLButtonElement | null;
+      const editMode = document.getElementById('edit-mode') as HTMLDivElement | null;
+      const viewMode = document.getElementById('view-mode') as HTMLDivElement | null;
+      const toolbar = document.getElementById('edit-toolbar') as HTMLDivElement | null;
+      const statusEl = document.getElementById('edit-status');
+      const addEndBtn = document.getElementById('edit-add-end');
+      const cancelBtn = document.getElementById('edit-cancel');
+      const saveBtn = document.getElementById('edit-save');
+      const deleteBtn = document.getElementById('delete-entry');
+
+      let working: Utterance[] = JSON.parse(JSON.stringify(data.utterances));
+      let dirty = false;
+
+      const setStatus = (msg: string) => { if (statusEl) statusEl.textContent = msg; };
+      const markDirty = () => { dirty = true; setStatus('未保存改动'); };
+
+      const newId = () => {
+        const used = new Set(working.map((u) => u.id));
+        for (let n = 1; ; n++) {
+          const id = `u${n}`;
+          if (!used.has(id)) return id;
+        }
+      };
+
+      const render = () => {
+        if (!editMode) return;
+        editMode.innerHTML = '';
+        working.forEach((u, i) => {
+          const row = document.createElement('div');
+          row.className = 'flex gap-2 py-1.5 items-start text-[14px]';
+          row.dataset.idx = String(i);
+
+          const ts = document.createElement('input');
+          ts.type = 'text';
+          ts.value = u.t;
+          ts.className = 'w-20 text-[11px] tabular-nums px-1 py-0.5 border rounded bg-transparent';
+          ts.style.borderColor = 'var(--color-rule)';
+          ts.title = '时间戳 HH:MM:SS';
+          ts.addEventListener('input', () => { working[i].t = ts.value; markDirty(); });
+
+          const sp = document.createElement('select');
+          sp.className = 'w-24 px-1 py-0.5 border rounded bg-transparent text-[13px]';
+          sp.style.borderColor = 'var(--color-rule)';
+          for (const opt of data.speakerOptions) {
+            const o = document.createElement('option');
+            o.value = opt; o.textContent = opt;
+            if (opt === u.speaker) o.selected = true;
+            sp.appendChild(o);
+          }
+          if (!data.speakerOptions.includes(u.speaker)) {
+            const o = document.createElement('option');
+            o.value = u.speaker; o.textContent = u.speaker; o.selected = true;
+            sp.appendChild(o);
+          }
+          sp.addEventListener('change', () => { working[i].speaker = sp.value; markDirty(); });
+
+          const tx = document.createElement('textarea');
+          tx.value = u.text;
+          tx.rows = 1;
+          tx.className = 'flex-1 px-2 py-1 border rounded bg-transparent leading-relaxed';
+          tx.style.borderColor = 'var(--color-rule)';
+          tx.style.resize = 'vertical';
+          tx.addEventListener('input', () => {
+            working[i].text = tx.value;
+            tx.style.height = 'auto';
+            tx.style.height = tx.scrollHeight + 'px';
+            markDirty();
+          });
+          // auto-grow on initial render
+          requestAnimationFrame(() => {
+            tx.style.height = 'auto';
+            tx.style.height = tx.scrollHeight + 'px';
+          });
+
+          const btnBox = document.createElement('div');
+          btnBox.className = 'flex flex-col gap-1';
+          const mkBtn = (label: string, onClick: () => void, title: string) => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.textContent = label;
+            b.title = title;
+            b.className = 'w-7 h-6 text-[11px] border rounded';
+            b.style.borderColor = 'var(--color-rule)';
+            b.addEventListener('click', onClick);
+            return b;
+          };
+          const addBelow = mkBtn('+', () => {
+            working.splice(i + 1, 0, {
+              id: newId(), t: u.t, speaker: u.speaker, text: '',
+            });
+            markDirty(); render();
+          }, '在下方插入');
+          const upBtn = mkBtn('↑', () => {
+            if (i === 0) return;
+            [working[i - 1], working[i]] = [working[i], working[i - 1]];
+            markDirty(); render();
+          }, '上移');
+          const downBtn = mkBtn('↓', () => {
+            if (i === working.length - 1) return;
+            [working[i + 1], working[i]] = [working[i], working[i + 1]];
+            markDirty(); render();
+          }, '下移');
+          const delBtn = mkBtn('×', () => {
+            if (!confirm('删除这一行？')) return;
+            working.splice(i, 1);
+            markDirty(); render();
+          }, '删除');
+
+          btnBox.append(addBelow, upBtn, downBtn, delBtn);
+          row.append(ts, sp, tx, btnBox);
+          editMode.appendChild(row);
+        });
+      };
+
+      const enterEdit = () => {
+        if (!editMode || !viewMode || !toolbar) return;
+        viewMode.classList.add('hidden');
+        editMode.classList.remove('hidden');
+        toolbar.classList.remove('hidden');
+        document.body.style.paddingBottom = '80px';
+        setStatus('编辑中');
+        dirty = false;
+        render();
+      };
+
+      const exitEdit = (force = false) => {
+        if (dirty && !force && !confirm('有未保存改动，确定退出？')) return;
+        if (!editMode || !viewMode || !toolbar) return;
+        editMode.classList.add('hidden');
+        viewMode.classList.remove('hidden');
+        toolbar.classList.add('hidden');
+        document.body.style.paddingBottom = '';
+        working = JSON.parse(JSON.stringify(data.utterances));
+        dirty = false;
+      };
+
+      const save = async () => {
+        setStatus('保存中…');
+        try {
+          const r = await fetch(`/api/dev/dialogue/${encodeURIComponent(data.slug)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ utterances: working }),
+          });
+          if (!r.ok) throw new Error(`HTTP ${r.status}: ${await r.text()}`);
+          const json = await r.json();
+          setStatus(`已保存 (${json.bytes ?? '?'} bytes)`);
+          dirty = false;
+          // Reload so server-rendered view picks up the new yaml.
+          setTimeout(() => location.reload(), 400);
+        } catch (e) {
+          setStatus('保存失败');
+          alert(`保存失败:\n${(e as Error).message}\n\n（dev API 仅在 \`npm run dev\` 时可用）`);
+        }
+      };
+
+      const del = async () => {
+        if (!confirm(`确定删除条目 "${data.slug}"？\n\n会删除：\n- ${data.entryPath}\n- ${data.dialoguePath}\n\n仅本地，需 git commit 后才推送。`)) return;
+        try {
+          const r = await fetch(`/api/dev/entry/${encodeURIComponent(data.slug)}`, { method: 'DELETE' });
+          if (!r.ok) throw new Error(`HTTP ${r.status}: ${await r.text()}`);
+          location.href = '/web/manzai/';
+        } catch (e) {
+          alert(`删除失败:\n${(e as Error).message}`);
+        }
+      };
+
+      enterBtn?.addEventListener('click', enterEdit);
+      cancelBtn?.addEventListener('click', () => exitEdit());
+      saveBtn?.addEventListener('click', save);
+      deleteBtn?.addEventListener('click', del);
+      addEndBtn?.addEventListener('click', () => {
+        const last = working[working.length - 1];
+        working.push({
+          id: newId(),
+          t: last?.t ?? '00:00:00',
+          speaker: last?.speaker ?? data.speakerOptions[0] ?? 'speaker',
+          text: '',
+        });
+        markDirty(); render();
+      });
+    }
   </script>
 </Base>
