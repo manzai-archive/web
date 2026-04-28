@@ -53,7 +53,7 @@ const lines = bodyMatches.map((m, i) => {
   }
   const rawSpeaker = speakerMap[m[1]] ?? m[1];
   return {
-    speaker: speakerWithRole(rawSpeaker),
+    speaker: rawSpeaker,  // role displayed once in the cast row above
     time: m[2],
     texts,
   };
