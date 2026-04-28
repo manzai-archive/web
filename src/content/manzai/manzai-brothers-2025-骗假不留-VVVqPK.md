@@ -21,7 +21,7 @@ speakers:
   谭湘文: 谭湘文
 roles:
   徐浩伦: 吐槽 (ツッコミ)
-  谭湘文: 搞笑 (ボケ)
+  谭湘文: 装傻 (ボケ)
 sensitivity: normal
 status: reviewed
 contributed_by: wheatfox
