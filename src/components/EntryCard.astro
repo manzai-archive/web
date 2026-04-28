@@ -18,19 +18,27 @@ const FORM_LABEL: Record<string, string> = {
 };
 const formLabel = FORM_LABEL[entry.data.form] ?? entry.data.form;
 ---
-<a href={`${base}manzai/${entry.id}/`} class="block p-4 border border-neutral-200 rounded-md hover:border-neutral-400 hover:bg-white transition">
-  <div class="text-xs text-neutral-500 mb-1">
-    <span class="px-1.5 py-0.5 mr-1.5 bg-blue-50 text-blue-700 rounded text-[11px] font-medium">{formLabel}</span>
-    <span lang={lang}>{groupName}</span>
-    {entry.data.source.uploaded_at ? ` · ${entry.data.source.uploaded_at}` : ''}
-  </div>
-  <div class="font-semibold mb-2" lang={entry.data.language}>{entry.data.title}</div>
-  <div class="flex gap-1.5 text-xs flex-wrap">
-    {entry.data.tags.map((t: string) => (
-      <span class="px-2 py-0.5 bg-neutral-100 rounded">{t}</span>
-    ))}
-    {entry.data.status === 'draft' && (
-      <span class="px-2 py-0.5 bg-amber-100 text-amber-700 rounded">draft</span>
+<a
+  href={`${base}manzai/${entry.id}/`}
+  class="group block py-5 border-b transition-colors"
+  style="border-color: var(--color-rule)"
+>
+  <div class="flex items-baseline gap-3 text-[12px] mb-1.5" style="color: var(--color-ink-faint)">
+    <span class="px-1.5 py-0.5 border rounded text-[11px] tracking-wide" style="border-color: var(--color-rule); color: var(--color-ink-soft)">{formLabel}</span>
+    <span lang={lang} class="text-[var(--color-ink-soft)]">{groupName}</span>
+    {entry.data.source.uploaded_at && (
+      <span class="ml-auto tabular-nums">{entry.data.source.uploaded_at}</span>
     )}
   </div>
+  <div class="font-mincho text-lg leading-snug group-hover:text-[var(--color-accent)] transition-colors" lang={entry.data.language}>
+    {entry.data.title}
+  </div>
+  {(entry.data.tags.length > 0 || entry.data.status === 'draft') && (
+    <div class="flex gap-2 text-[11px] mt-2" style="color: var(--color-ink-faint)">
+      {entry.data.tags.map((t: string) => <span>#{t}</span>)}
+      {entry.data.status === 'draft' && (
+        <span class="ml-auto" style="color: var(--color-warm)">未校对</span>
+      )}
+    </div>
+  )}
 </a>

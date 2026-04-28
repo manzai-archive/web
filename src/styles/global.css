@@ -1,36 +1,69 @@
 @import "tailwindcss";
 
 /*
-  Font strategy:
-  - Default (zh-CN, set on <html>): Latin first, then Chinese fonts.
-  - :lang(ja): elements explicitly marked lang="ja" get Japanese fonts,
-    so kanji like 直/骨/言 render with JP glyph shape, not CN.
-  - :lang(en): pure Latin fallback.
-  Latin characters always come from the leading -apple-system / system-ui,
-  so English text inside any block looks native.
+  Visual: Japanese-minimal. Cream background, charcoal text, hairline
+  borders, generous whitespace, mincho accent for headings.
 */
 
 @theme {
+  --color-bg:        #fbf9f4;
+  --color-card:      #ffffff;
+  --color-ink:       #1a1916;
+  --color-ink-soft:  #6b6760;
+  --color-ink-faint: #a8a39a;
+  --color-rule:      #e8e3d8;
+  --color-accent:    #3f5bcb;
+  --color-accent-soft: #ebeefc;
+  --color-warm:      #c8553d;
+
   --font-sans:
     -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI",
     system-ui, "Helvetica Neue", "Helvetica", Arial,
     "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
     "Noto Sans SC", "WenQuanYi Micro Hei", sans-serif;
+
+  --font-serif:
+    "Hiragino Mincho ProN", "Yu Mincho", "Songti SC", "STZhongsong",
+    "Noto Serif JP", "Noto Serif SC", Georgia, serif;
+
   --font-mono:
     ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 }
 
 :root {
-  --speaker-a: oklch(0.55 0.18 250);
-  --speaker-b: oklch(0.55 0.18 30);
+  --speaker-a: #3f5bcb;
+  --speaker-b: #c8553d;
 }
 
+html {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-size: 16px;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-feature-settings: "palt" 1;  /* tighter Japanese kerning */
+}
+
+/* Mincho for big titles only — keeps elegance without strain */
+h1, h2, .font-mincho {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+/* Per-language font tweaks */
 :lang(ja) {
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI",
     system-ui, "Helvetica Neue", "Helvetica", Arial,
     "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic",
     "Yu Gothic UI", "Meiryo", "Noto Sans JP", sans-serif;
+}
+:lang(ja) h1, :lang(ja) h2 {
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
 }
 
 :lang(en) {
@@ -39,38 +72,43 @@
     system-ui, "Helvetica Neue", "Helvetica", Arial, sans-serif;
 }
 
+/* Subtle link style */
+a {
+  color: inherit;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+/* Speaker name color (kept subtle so it doesn't overpower) */
 .script-line[data-speaker-idx="0"] .speaker { color: var(--speaker-a); }
 .script-line[data-speaker-idx="1"] .speaker { color: var(--speaker-b); }
+.script-line {
+  line-height: 1.85;
+}
 
-/* --- Multi-language toggle ---
-   Each line renders one <span> per available language. The container's
-   data-display attribute decides which to show.                       */
-
+/* --- Multi-language toggle --- */
 .script-container[data-display="zh"] .line-text > :not(.text-zh),
 .script-container[data-display="ja"] .line-text > :not(.text-ja),
 .script-container[data-display="en"] .line-text > :not(.text-en) {
   display: none;
 }
-
-/* "Both" mode: stack each language on its own line, source language dimmed */
 .script-container[data-display="both"] .line-text {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
 }
-.script-container[data-display="both"] .text-zh { font-weight: 500; }
+.script-container[data-display="both"] .text-zh { color: var(--color-ink); }
 .script-container[data-display="both"] .text-ja,
 .script-container[data-display="both"] .text-en {
-  color: oklch(0.55 0.02 250);
+  color: var(--color-ink-soft);
   font-size: 0.92em;
 }
 
-/* Active toggle button */
 .script-container[data-display="zh"] .lang-btn[data-set-lang="zh"],
 .script-container[data-display="ja"] .lang-btn[data-set-lang="ja"],
 .script-container[data-display="en"] .lang-btn[data-set-lang="en"],
 .script-container[data-display="both"] .lang-btn[data-set-lang="both"] {
-  background: oklch(0.2 0 0);
+  background: var(--color-ink);
   color: white;
-  border-color: oklch(0.2 0 0);
+  border-color: var(--color-ink);
 }

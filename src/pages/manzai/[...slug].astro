@@ -30,7 +30,6 @@ for (const [lang, arr] of Object.entries(translations)) {
 const availableLangs = [sourceLang, ...Object.keys(validTranslations).filter((l) => l !== sourceLang)];
 const defaultLang = availableLangs.includes('zh') ? 'zh' : sourceLang;
 
-// Comedy form & per-performance roles
 const FORM_LABEL: Record<string, string> = {
   manzai: '漫才',
   xiangsheng: '相声',
@@ -41,19 +40,14 @@ const FORM_LABEL: Record<string, string> = {
 };
 const formLabel = FORM_LABEL[entry.data.form] ?? entry.data.form;
 const roles: Record<string, string> = entry.data.roles ?? {};
-const speakerWithRole = (name: string) => {
-  const r = roles[name];
-  return r ? `${name} (${r})` : name;
-};
 
 const lines = bodyMatches.map((m, i) => {
   const texts: Record<string, string> = { [sourceLang]: m[3] };
   for (const [lang, arr] of Object.entries(validTranslations)) {
     texts[lang] = arr[i];
   }
-  const rawSpeaker = speakerMap[m[1]] ?? m[1];
   return {
-    speaker: rawSpeaker,  // role displayed once in the cast row above
+    speaker: speakerMap[m[1]] ?? m[1],
     time: m[2],
     texts,
   };
@@ -61,9 +55,8 @@ const lines = bodyMatches.map((m, i) => {
 
 const speakerOrder = Array.from(new Set(lines.map((l) => l.speaker)));
 
-const langLabel: Record<string, string> = { zh: '中', ja: '原文(日)', en: 'EN' };
+const langLabel: Record<string, string> = { zh: '中', ja: '日', en: 'EN' };
 
-// Resolve performer reference
 const perfRef = entry.data.performers[0];
 const perf = perfRef ? await getEntry(perfRef) : null;
 const perfName = perf?.data.display_name ?? (typeof perfRef === 'string' ? perfRef : perfRef?.id) ?? 'Unknown';
@@ -71,57 +64,49 @@ const perfLang = perf?.data.language ?? sourceLang;
 ---
 <Base title={`${entry.data.title} · 漫才档案`}>
   <article>
-    <div class="mb-6">
-      <div class="text-xs text-neutral-500 mb-1" lang={perfLang}>
-        {perf ? (
-          <a class="hover:underline" href={`${import.meta.env.BASE_URL}manzai/?group=${perfRef.id ?? perfRef}`}>{perfName}</a>
-        ) : perfName}
-      </div>
-      <h1 class="text-2xl font-bold mb-2" lang={sourceLang}>{entry.data.title}</h1>
-      <div class="flex gap-1.5 text-xs flex-wrap mb-2">
-        <span class="px-2 py-0.5 bg-blue-50 text-blue-700 rounded font-medium">{formLabel}</span>
-        {entry.data.tags.map((t: string) => (
-          <span class="px-2 py-0.5 bg-neutral-100 rounded">{t}</span>
-        ))}
-        {entry.data.status === 'draft' && (
-          <span class="px-2 py-0.5 bg-amber-100 text-amber-700 rounded">draft (未校对)</span>
+    <header class="mb-10">
+      <div class="flex items-baseline gap-3 text-[12px] mb-3" style="color: var(--color-ink-faint)">
+        <span class="px-1.5 py-0.5 border rounded text-[11px] tracking-wide" style="border-color: var(--color-rule); color: var(--color-ink-soft)">{formLabel}</span>
+        <span lang={perfLang} class="text-[var(--color-ink-soft)]">{perfName}</span>
+        {entry.data.source.uploaded_at && (
+          <span class="ml-auto tabular-nums">{entry.data.source.uploaded_at}</span>
         )}
       </div>
+
+      <h1 class="text-3xl leading-tight mb-5" lang={sourceLang}>{entry.data.title}</h1>
+
       {Object.keys(roles).length > 0 && (
-        <div class="text-sm text-neutral-700 mb-3 flex gap-3 flex-wrap" lang={perfLang}>
-          <span class="text-neutral-500">出演：</span>
+        <div class="text-[13px] mb-3 space-x-3" lang={perfLang}>
           {Object.entries(roles).map(([name, role]: [string, string]) => (
-            <span><b>{name}</b> <span class="text-neutral-500">({role})</span></span>
+            <span><b class="font-medium">{name}</b><span class="ml-1.5" style="color: var(--color-ink-faint)">{role}</span></span>
           ))}
         </div>
       )}
-      <div class="text-sm">
-        <a class="underline text-blue-700" href={entry.data.source.url} target="_blank" rel="noopener">
+
+      <div class="flex flex-wrap items-center gap-3 text-[12px]" style="color: var(--color-ink-faint)">
+        <a class="underline hover:text-[var(--color-ink-soft)]" href={entry.data.source.url} target="_blank" rel="noopener">
           原视频 ({entry.data.source.platform})
         </a>
-        {entry.data.source.uploader && (
-          <span class="text-neutral-500"> · {entry.data.source.uploader}</span>
-        )}
-        {entry.data.source.uploaded_at && (
-          <span class="text-neutral-500"> · {entry.data.source.uploaded_at}</span>
-        )}
+        {entry.data.source.uploader && <span>{entry.data.source.uploader}</span>}
+        {entry.data.tags.map((t: string) => <span>#{t}</span>)}
+        {entry.data.status === 'draft' && <span style="color: var(--color-warm)">未校对</span>}
       </div>
-    </div>
+    </header>
 
-    <div class="script-container bg-white border border-neutral-200 rounded-md p-5" data-display={defaultLang} data-pagefind-body>
+    <div class="script-container" data-display={defaultLang} data-pagefind-body>
       {availableLangs.length > 1 && (
-        <div class="lang-toggle flex gap-1 mb-4 text-sm items-center">
-          <span class="text-xs text-neutral-500 mr-2">显示</span>
+        <div class="lang-toggle flex gap-1 mb-6 text-[12px] items-center">
+          <span class="mr-2" style="color: var(--color-ink-faint)">显示</span>
           {availableLangs.map((lang) => (
-            <button type="button" class="lang-btn px-3 py-1 rounded border border-neutral-300 hover:border-neutral-500" data-set-lang={lang}>
+            <button type="button" class="lang-btn px-2.5 py-1 rounded border transition-colors" style="border-color: var(--color-rule); color: var(--color-ink-soft)" data-set-lang={lang}>
               {langLabel[lang] ?? lang}
             </button>
           ))}
-          <button type="button" class="lang-btn px-3 py-1 rounded border border-neutral-300 hover:border-neutral-500" data-set-lang="both">双语</button>
+          <button type="button" class="lang-btn px-2.5 py-1 rounded border transition-colors" style="border-color: var(--color-rule); color: var(--color-ink-soft)" data-set-lang="both">双语</button>
         </div>
       )}
 
-      <div class="lines">
+      <div class="lines space-y-3">
         {lines.map((l) => (
           <SpeakerLine
             speaker={l.speaker}
@@ -134,22 +119,22 @@ const perfLang = perf?.data.language ?? sourceLang;
     </div>
 
     {entry.data.sensitivity === 'high' && (
-      <p class="mt-4 text-xs text-neutral-500">
+      <p class="mt-8 text-[12px]" style="color: var(--color-ink-faint)">
         本作品来源于版权敏感的赛事/电视节目。本站仅保留文字片段供研究学习，请通过原视频链接观看完整内容支持创作者。
       </p>
     )}
 
     {entry.data.ingestion && (
-      <details class="mt-6 text-xs text-neutral-500">
-        <summary class="cursor-pointer">溯源信息</summary>
-        <dl class="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-          {entry.data.source.fetched_at && <><dt>抓取时间</dt><dd>{entry.data.source.fetched_at}</dd></>}
+      <details class="mt-12 text-[12px]" style="color: var(--color-ink-faint)">
+        <summary class="cursor-pointer hover:text-[var(--color-ink-soft)]">溯源信息</summary>
+        <dl class="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+          {entry.data.source.fetched_at && <><dt>抓取时间</dt><dd class="tabular-nums">{entry.data.source.fetched_at}</dd></>}
           {entry.data.source.fetched_with && <><dt>抓取工具</dt><dd>{entry.data.source.fetched_with}</dd></>}
-          {entry.data.ingestion.pipeline_version && <><dt>Pipeline 版本</dt><dd>{entry.data.ingestion.pipeline_version}</dd></>}
+          {entry.data.ingestion.pipeline_version && <><dt>Pipeline</dt><dd>{entry.data.ingestion.pipeline_version}</dd></>}
           {entry.data.ingestion.asr && <><dt>ASR</dt><dd>{entry.data.ingestion.asr.backend} / {entry.data.ingestion.asr.model}</dd></>}
-          {entry.data.ingestion.asr?.detected_language && <><dt>检测语言</dt><dd>{entry.data.ingestion.asr.detected_language}</dd></>}
+          {entry.data.ingestion.asr?.detected_language && <><dt>语言</dt><dd>{entry.data.ingestion.asr.detected_language}</dd></>}
           {entry.data.ingestion.asr?.word_count && <><dt>词数</dt><dd>{entry.data.ingestion.asr.word_count}</dd></>}
-          {entry.data.ingestion.diarization && <><dt>分离</dt><dd>{entry.data.ingestion.diarization.model}（{entry.data.ingestion.diarization.num_speakers}人，{entry.data.ingestion.diarization.turn_count} 轮）</dd></>}
+          {entry.data.ingestion.diarization && <><dt>分离</dt><dd>{entry.data.ingestion.diarization.model} ({entry.data.ingestion.diarization.num_speakers}人 / {entry.data.ingestion.diarization.turn_count}轮)</dd></>}
           {entry.data.contributed_by && <><dt>贡献者</dt><dd>{entry.data.contributed_by}</dd></>}
         </dl>
       </details>

@@ -8,8 +8,12 @@ const all = (await getCollection('manzai')).sort((a, b) =>
 );
 ---
 <Base title="所有剧本 · 漫才档案">
-  <h1 class="text-2xl font-bold mb-6">所有剧本 ({all.length})</h1>
-  <div class="grid sm:grid-cols-2 gap-3">
+  <section class="mb-10">
+    <h1 class="text-3xl mb-2">所有剧本</h1>
+    <p class="text-[13px]" style="color: var(--color-ink-faint)">共 {all.length} 件作品</p>
+  </section>
+
+  <div class="border-t" style="border-color: var(--color-rule)">
     {all.map((entry) => <EntryCard entry={entry} />)}
   </div>
 </Base>
