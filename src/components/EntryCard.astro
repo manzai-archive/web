@@ -7,9 +7,20 @@ const perfRef = entry.data.performers[0];
 const perf = perfRef ? await getEntry(perfRef) : null;
 const groupName = perf?.data.display_name ?? (typeof perfRef === 'string' ? perfRef : perfRef?.id) ?? 'Unknown';
 const lang = perf?.data.language ?? entry.data.language;
+
+const FORM_LABEL: Record<string, string> = {
+  manzai: '漫才',
+  xiangsheng: '相声',
+  standup: '脱口秀',
+  sketch: 'コント / 小品',
+  rakugo: '落語',
+  other: '其他',
+};
+const formLabel = FORM_LABEL[entry.data.form] ?? entry.data.form;
 ---
 <a href={`${base}manzai/${entry.id}/`} class="block p-4 border border-neutral-200 rounded-md hover:border-neutral-400 hover:bg-white transition">
   <div class="text-xs text-neutral-500 mb-1">
+    <span class="px-1.5 py-0.5 mr-1.5 bg-blue-50 text-blue-700 rounded text-[11px] font-medium">{formLabel}</span>
     <span lang={lang}>{groupName}</span>
     {entry.data.source.uploaded_at ? ` · ${entry.data.source.uploaded_at}` : ''}
   </div>
