@@ -20,8 +20,8 @@ speakers:
   徐浩伦: 徐浩伦
   谭湘文: 谭湘文
 roles:
-  徐浩伦: ツッコミ
-  谭湘文: ボケ
+  徐浩伦: 吐槽 (ツッコミ)
+  谭湘文: 搞笑 (ボケ)
 sensitivity: normal
 status: reviewed
 contributed_by: wheatfox
