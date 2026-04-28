@@ -20,8 +20,8 @@ speakers:
   中川剛: 中川剛
   中川礼二: 中川礼二
 roles:
-  中川剛: ツッコミ
-  中川礼二: ボケ
+  中川剛: 吐槽 (ツッコミ)
+  中川礼二: 装傻 (ボケ)
 sensitivity: normal
 status: reviewed
 contributed_by: wheatfox
