@@ -24,10 +24,7 @@ let lines: Utterance[] = [];
 if (dialogueEntry) {
   rawUtterances = dialogueEntry.data.utterances.map((u, i) => ({
     id: u.id || `u${i + 1}`,
-    t: u.t,
-    speaker: u.speaker,
-    text: u.text,
-    translations: u.translations,
+    t: u.t, speaker: u.speaker, text: u.text, translations: u.translations,
   }));
   for (const u of rawUtterances) {
     const texts: Record<string, string> = { [sourceLang]: u.text };
@@ -37,7 +34,6 @@ if (dialogueEntry) {
     lines.push({ id: u.id, speaker: speakerMap[u.speaker] ?? u.speaker, time: u.t, texts });
   }
 } else {
-  // Legacy in-body parsing (pre-Plan-C entries)
   const lineRegex = /\*\*(.+?)\*\*\s*\[(\d{2}:\d{2}:\d{2})\]\s*(.+)/;
   const bodyMatches = entry.body.split('\n')
     .map((l: string) => l.match(lineRegex))
@@ -63,7 +59,6 @@ const formLabel = FORM_LABEL[entry.data.form] ?? entry.data.form;
 const roles: Record<string, string> = entry.data.roles ?? {};
 
 const speakerOrder = Array.from(new Set(lines.map((l) => l.speaker)));
-
 const langLabel: Record<string, string> = { zh: '中', ja: '日', en: 'EN', auto: '原文' };
 
 const perfRef = entry.data.performers[0];
@@ -146,7 +141,7 @@ const editorBootstrap = {
       )}
 
       <div id="lines" class="lines space-y-3">
-        {lines.map((l, i) => (
+        {lines.map((l) => (
           <SpeakerLine
             speaker={l.speaker}
             time={l.time}
@@ -183,91 +178,147 @@ const editorBootstrap = {
 
   {isDev && (
     <>
-      <!-- floating toolbar -->
-      <div id="edit-toolbar" class="hidden fixed bottom-0 left-0 right-0 border-t backdrop-blur z-20" style="background-color: rgba(251, 249, 244, 0.94); border-color: var(--color-rule)">
-        <div class="max-w-3xl mx-auto px-6 py-3 flex items-center gap-3 text-[13px]">
+      <div id="edit-toolbar" class="hidden fixed bottom-0 left-0 right-0 border-t backdrop-blur z-20" style="background-color: rgba(251, 249, 244, 0.95); border-color: var(--color-rule)">
+        <div class="max-w-3xl mx-auto px-6 py-3 flex items-center gap-2 text-[13px]">
           <span class="text-[var(--color-ink-faint)]">编辑模式</span>
           <span id="edit-status" class="text-[var(--color-ink-faint)]">·</span>
-          <span class="ml-auto text-[11px] text-[var(--color-ink-faint)]">点说话人切换 · 点文字编辑 · 行末 ⋮ 增删换序</span>
-          <button id="edit-delete" type="button" class="px-2 py-1 border rounded text-[11px]" style="border-color: var(--color-rule); color: var(--color-warm)">删除整条</button>
-          <button id="edit-cancel" type="button" class="px-3 py-1 border rounded" style="border-color: var(--color-rule)">取消</button>
-          <button id="edit-save" type="button" class="px-3 py-1 border rounded font-medium" style="border-color: var(--color-ink); background-color: var(--color-ink); color: var(--color-bg)">保存</button>
+          <div class="ml-auto flex items-center gap-1">
+            <button id="edit-undo" type="button" class="px-2 py-1 border rounded text-[12px] disabled:opacity-30" style="border-color: var(--color-rule)" title="撤销 (⌘Z)">↶ 撤销</button>
+            <button id="edit-redo" type="button" class="px-2 py-1 border rounded text-[12px] disabled:opacity-30" style="border-color: var(--color-rule)" title="重做 (⌘⇧Z)">↷ 重做</button>
+            <span class="mx-2 text-[var(--color-rule)]">|</span>
+            <button id="edit-delete" type="button" class="px-2 py-1 border rounded text-[12px]" style="border-color: var(--color-rule); color: var(--color-warm)">删除整条</button>
+            <button id="edit-cancel" type="button" class="px-3 py-1 border rounded text-[12px]" style="border-color: var(--color-rule)">取消</button>
+            <button id="edit-save" type="button" class="px-3 py-1 border rounded text-[12px] font-medium" style="border-color: var(--color-ink); background-color: var(--color-ink); color: var(--color-bg)">保存</button>
+          </div>
         </div>
       </div>
 
-      <!-- row action menu (popover) -->
-      <div id="row-menu" class="hidden fixed z-30 border bg-[var(--color-bg)] rounded shadow-sm text-[12px]" style="border-color: var(--color-rule); min-width: 140px">
+      <div id="row-menu" class="hidden fixed z-30 border bg-[var(--color-bg)] rounded shadow-md text-[13px] py-1" style="border-color: var(--color-rule); min-width: 150px">
         <button data-action="add-above" class="block w-full text-left px-3 py-1.5 hover:bg-black/5">↑ 上方插入</button>
         <button data-action="add-below" class="block w-full text-left px-3 py-1.5 hover:bg-black/5">↓ 下方插入</button>
-        <button data-action="up" class="block w-full text-left px-3 py-1.5 hover:bg-black/5">↑ 上移</button>
-        <button data-action="down" class="block w-full text-left px-3 py-1.5 hover:bg-black/5">↓ 下移</button>
+        <div class="my-1 border-t" style="border-color: var(--color-rule)"></div>
         <button data-action="del" class="block w-full text-left px-3 py-1.5 hover:bg-black/5" style="color: var(--color-warm)">× 删除此行</button>
       </div>
 
-      <!-- speaker picker popover -->
-      <div id="speaker-pop" class="hidden fixed z-30 border bg-[var(--color-bg)] rounded shadow-sm text-[13px]" style="border-color: var(--color-rule); min-width: 100px"></div>
+      <div id="speaker-pop" class="hidden fixed z-30 border bg-[var(--color-bg)] rounded shadow-md text-[13px] py-1" style="border-color: var(--color-rule); min-width: 110px"></div>
     </>
   )}
 
   <script type="application/json" id="editor-bootstrap" set:html={JSON.stringify(editorBootstrap)}></script>
 
   <style>
+    .lines.editing { padding-bottom: 80px; }
+
     .lines.editing .script-line {
-      border-left: 2px solid transparent;
-      padding-left: 8px;
-      margin-left: -10px;
-      transition: border-color 0.15s, background-color 0.15s;
+      position: relative;
+      padding: 10px 36px 10px 32px;
+      margin: 0;
+      border: 1px solid var(--color-rule);
+      border-radius: 4px;
+      background-color: rgba(255,255,255,0.4);
+      transition: border-color 0.15s, background-color 0.15s, box-shadow 0.15s;
     }
+    .lines.editing.space-y-3 > * + * { margin-top: 6px; }
     .lines.editing .script-line:hover {
-      border-left-color: var(--color-rule);
-      background-color: rgba(0,0,0,0.015);
+      border-color: var(--color-ink-faint);
+      background-color: rgba(255,255,255,0.7);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     }
     .lines.editing .script-line.dirty {
-      border-left-color: var(--color-warm);
+      border-left: 3px solid var(--color-warm);
+      padding-left: 30px;
     }
+    .lines.editing .script-line.dragging {
+      opacity: 0.4;
+    }
+    .lines.editing .script-line.drop-above::before,
+    .lines.editing .script-line.drop-below::after {
+      content: '';
+      position: absolute;
+      left: 0; right: 0;
+      height: 2px;
+      background-color: var(--color-ink);
+      border-radius: 1px;
+    }
+    .lines.editing .script-line.drop-above::before { top: -4px; }
+    .lines.editing .script-line.drop-below::after { bottom: -4px; }
+
     .lines.editing [data-role="speaker"] {
       cursor: pointer;
-      border-bottom: 1px dashed transparent;
+      text-decoration: underline;
+      text-decoration-style: dotted;
+      text-decoration-color: var(--color-ink-faint);
+      text-underline-offset: 4px;
+      border-radius: 2px;
+      padding: 2px 4px;
+      margin: -2px -4px;
+      transition: background-color 0.12s;
     }
     .lines.editing [data-role="speaker"]:hover {
-      border-bottom-color: var(--color-ink-faint);
+      background-color: rgba(0,0,0,0.06);
+      text-decoration-color: var(--color-ink);
     }
     .lines.editing [data-role="text"] {
       cursor: text;
       outline: none;
       border-radius: 2px;
+      padding: 2px 4px;
+      margin: -2px -4px;
+      transition: background-color 0.12s;
+    }
+    .lines.editing [data-role="text"]:hover {
+      background-color: rgba(255, 220, 130, 0.10);
     }
     .lines.editing [data-role="text"]:focus {
-      background-color: rgba(255, 220, 130, 0.18);
+      background-color: rgba(255, 220, 130, 0.22);
+      box-shadow: 0 0 0 1px rgba(180,140,60,0.4);
     }
-    .row-menu-trigger {
+
+    .row-drag-handle, .row-menu-trigger {
       position: absolute;
-      right: -8px;
-      top: 4px;
       width: 22px;
       height: 22px;
-      display: none;
+      display: flex;
       align-items: center;
       justify-content: center;
-      cursor: pointer;
       color: var(--color-ink-faint);
-      font-size: 14px;
       border-radius: 3px;
+      user-select: none;
+      transition: opacity 0.15s, background-color 0.15s, color 0.15s;
     }
-    .row-menu-trigger:hover {
-      background-color: rgba(0,0,0,0.06);
-      color: var(--color-ink);
+    .row-drag-handle {
+      left: 4px;
+      top: 9px;
+      cursor: grab;
+      opacity: 0.5;
+      font-size: 14px;
+      letter-spacing: -2px;
     }
+    .row-drag-handle:active { cursor: grabbing; }
+    .row-menu-trigger {
+      right: 6px;
+      top: 9px;
+      cursor: pointer;
+      opacity: 0.5;
+      font-size: 18px;
+    }
+    .lines.editing .script-line:hover .row-drag-handle,
     .lines.editing .script-line:hover .row-menu-trigger {
-      display: flex;
+      opacity: 1;
     }
-    .lines.editing .script-line .row-menu-trigger.pinned {
-      display: flex;
+    .row-drag-handle:hover, .row-menu-trigger:hover {
+      background-color: rgba(0,0,0,0.08);
+      color: var(--color-ink);
+      opacity: 1 !important;
+    }
+    .row-menu-trigger.pinned {
+      background-color: rgba(0,0,0,0.08);
+      color: var(--color-ink);
+      opacity: 1 !important;
     }
   </style>
 
   <script>
-    // language toggle (always on)
     document.querySelectorAll<HTMLButtonElement>('.lang-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         const container = btn.closest<HTMLElement>('.script-container');
@@ -275,8 +326,6 @@ const editorBootstrap = {
         if (container && lang) container.dataset.display = lang;
       });
     });
-
-    // ====== Editor (dev-only) ===========================================
 
     type Utt = { id: string; t: string; speaker: string; text: string; translations?: Record<string, string> };
     type Boot = { slug: string; utterances: Utt[]; speakerOptions: string[]; sourceLang: string; dialoguePath: string; entryPath: string };
@@ -291,115 +340,211 @@ const editorBootstrap = {
       const cancelBtn = document.getElementById('edit-cancel');
       const saveBtn = document.getElementById('edit-save');
       const deleteEntryBtn = document.getElementById('edit-delete');
+      const undoBtn = document.getElementById('edit-undo') as HTMLButtonElement | null;
+      const redoBtn = document.getElementById('edit-redo') as HTMLButtonElement | null;
       const rowMenu = document.getElementById('row-menu') as HTMLElement | null;
       const speakerPop = document.getElementById('speaker-pop') as HTMLElement | null;
 
-      // working copy keyed by id
-      let working: Utt[] = JSON.parse(JSON.stringify(boot.utterances));
-      let editing = false;
-      let dirty = false;
+      const escHtml = (s: string) =>
+        s.replace(/[&<>"']/g, (c) => (
+          { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' } as Record<string, string>
+        )[c]);
+      const escAttr = (s: string) => escHtml(s);
+      const cssEscape = (s: string) =>
+        (window as { CSS?: { escape?: (v: string) => string } }).CSS?.escape
+          ? (window as { CSS: { escape: (v: string) => string } }).CSS.escape(s)
+          : s.replace(/[^a-zA-Z0-9_-]/g, (c) => `\\${c}`);
 
-      const setStatus = (s: string) => { if (statusEl) statusEl.textContent = s; };
+      let working: Utt[] = JSON.parse(JSON.stringify(boot.utterances));
+      let history: string[] = [JSON.stringify(working)];
+      let cursor = 0;
+      let editing = false;
 
       const findIdx = (id: string) => working.findIndex((u) => u.id === id);
-
       const newId = () => {
         const used = new Set(working.map((u) => u.id));
         for (let n = 1; ; n++) { const id = `u${n}`; if (!used.has(id)) return id; }
       };
+      const setStatus = (s: string) => { if (statusEl) statusEl.textContent = s; };
 
-      const markDirty = () => {
-        const changed = JSON.stringify(working) !== JSON.stringify(boot.utterances);
-        dirty = changed;
-        setStatus(changed ? '有未保存改动' : '·');
+      const updateButtons = () => {
+        if (undoBtn) undoBtn.disabled = cursor === 0;
+        if (redoBtn) redoBtn.disabled = cursor >= history.length - 1;
+        const dirty = JSON.stringify(working) !== JSON.stringify(boot.utterances);
+        setStatus(dirty ? `已修改 (${history.length - 1} 步)` : '·');
       };
 
-      // ----- in-place rendering -----
-      const renderLineDom = (u: Utt) => {
-        const row = linesEl?.querySelector(`.script-line[data-uid="${cssEscape(u.id)}"]`) as HTMLElement | null;
-        if (!row) return;
-        const speakerEl = row.querySelector('[data-role="speaker"]') as HTMLElement | null;
-        const textEl = row.querySelector('[data-role="text"]') as HTMLElement | null;
-        const timeEl = row.querySelector('[data-role="time"]') as HTMLElement | null;
-        if (speakerEl) speakerEl.textContent = u.speaker;
-        if (textEl) {
-          const langSpans = Array.from(textEl.querySelectorAll<HTMLElement>('[lang]'));
-          const sourceSpan = langSpans.find((s) => s.lang === boot.sourceLang) || langSpans[0];
-          if (sourceSpan) sourceSpan.textContent = u.text;
-        }
-        if (timeEl) timeEl.textContent = u.t;
-        if (JSON.stringify(u) !== JSON.stringify(boot.utterances[findIdxOriginal(u.id)] ?? null)) {
-          row.classList.add('dirty');
-        } else {
-          row.classList.remove('dirty');
-        }
+      const pushHistory = () => {
+        const snap = JSON.stringify(working);
+        if (snap === history[cursor]) return;
+        history = history.slice(0, cursor + 1);
+        history.push(snap);
+        cursor = history.length - 1;
+        updateButtons();
       };
 
-      const findIdxOriginal = (id: string) => boot.utterances.findIndex((u) => u.id === id);
+      const restore = () => {
+        working = JSON.parse(history[cursor]);
+        renderAll();
+        updateButtons();
+      };
 
-      const cssEscape = (s: string) => (window as any).CSS?.escape ? (window as any).CSS.escape(s) : s.replace(/[^a-zA-Z0-9_-]/g, (c) => `\\${c}`);
+      const undo = () => {
+        if (cursor === 0) return;
+        commitPendingTextEdit();
+        cursor--;
+        restore();
+      };
+      const redo = () => {
+        if (cursor >= history.length - 1) return;
+        commitPendingTextEdit();
+        cursor++;
+        restore();
+      };
 
-      const buildRowFor = (u: Utt, idx: number): HTMLElement => {
+      // ----- DOM building & wiring -----
+      const buildRow = (u: Utt, idx: number): HTMLElement => {
+        const sl = boot.sourceLang;
         const tpl = document.createElement('div');
-        const sourceSpanLang = boot.sourceLang;
         tpl.innerHTML = `
           <div class="script-line group relative flex gap-4 py-1" data-uid="${escAttr(u.id)}" data-speaker-idx="${idx % 2}">
+            <span class="row-drag-handle" title="拖动排序" draggable="true">⋮⋮</span>
             <span class="speaker shrink-0 w-20 text-right text-[13px] font-medium" style="line-height: 1.85" data-role="speaker">${escHtml(u.speaker)}</span>
             <span class="text-[11px] tabular-nums shrink-0 w-14 pt-1" style="color: var(--color-ink-faint)" data-role="time">${escHtml(u.t)}</span>
             <span class="flex-1 line-text text-[15px] leading-[1.85]" data-role="text">
-              <span class="text-${sourceSpanLang}" lang="${sourceSpanLang}">${escHtml(u.text)}</span>
+              <span class="text-${sl}" lang="${sl}">${escHtml(u.text)}</span>
             </span>
-            <span class="row-menu-trigger" title="行操作">⋮</span>
+            <span class="row-menu-trigger" title="行操作">⋯</span>
           </div>
         `;
-        return tpl.firstElementChild as HTMLElement;
+        const row = tpl.firstElementChild as HTMLElement;
+        wireRow(row);
+        return row;
       };
 
-      const escHtml = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' } as any)[c]);
-      const escAttr = (s: string) => escHtml(s);
+      let pendingTextEl: HTMLElement | null = null;
+      const commitPendingTextEdit = () => {
+        if (pendingTextEl) {
+          pendingTextEl.blur();
+          pendingTextEl = null;
+        }
+        pushHistory();
+      };
 
-      // attach editor handlers to a single .script-line
       const wireRow = (row: HTMLElement) => {
         const uid = row.dataset.uid!;
         const speakerEl = row.querySelector('[data-role="speaker"]') as HTMLElement | null;
         const textEl = row.querySelector('[data-role="text"]') as HTMLElement | null;
-        let trigger = row.querySelector('.row-menu-trigger') as HTMLElement | null;
-        if (!trigger) {
-          trigger = document.createElement('span');
-          trigger.className = 'row-menu-trigger';
-          trigger.textContent = '⋮';
-          trigger.title = '行操作';
-          row.appendChild(trigger);
-        }
+        const trigger = row.querySelector('.row-menu-trigger') as HTMLElement | null;
+        const dragHandle = row.querySelector('.row-drag-handle') as HTMLElement | null;
+
         speakerEl?.addEventListener('click', (e) => {
           e.stopPropagation();
           openSpeakerPicker(uid, speakerEl);
         });
+
         if (textEl) {
           textEl.contentEditable = 'true';
           textEl.spellcheck = false;
+          textEl.addEventListener('focus', () => { pendingTextEl = textEl; });
           textEl.addEventListener('input', () => {
             const idx = findIdx(uid);
-            if (idx >= 0) {
-              // Pull source-lang span text only
-              const sourceSpan = textEl.querySelector(`[lang="${boot.sourceLang}"]`) as HTMLElement | null;
-              const newText = (sourceSpan?.textContent ?? textEl.textContent ?? '').replace(/\s+$/, '');
-              working[idx].text = newText;
-              row.classList.add('dirty');
-              markDirty();
-            }
+            if (idx < 0) return;
+            const sourceSpan = textEl.querySelector(`[lang="${boot.sourceLang}"]`) as HTMLElement | null;
+            const newText = (sourceSpan?.textContent ?? textEl.textContent ?? '').replace(/ /g, ' ');
+            working[idx].text = newText;
+            row.classList.add('dirty');
+            updateButtons();
+          });
+          textEl.addEventListener('blur', () => {
+            if (pendingTextEl === textEl) pendingTextEl = null;
+            pushHistory();
           });
         }
+
         trigger?.addEventListener('click', (e) => {
           e.stopPropagation();
-          openRowMenu(uid, trigger as HTMLElement);
+          openRowMenu(uid, trigger);
+        });
+
+        // ----- drag & drop reorder -----
+        if (dragHandle) {
+          dragHandle.addEventListener('dragstart', (e: DragEvent) => {
+            commitPendingTextEdit();
+            row.classList.add('dragging');
+            e.dataTransfer?.setData('text/plain', uid);
+            if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+          });
+          dragHandle.addEventListener('dragend', () => {
+            row.classList.remove('dragging');
+            linesEl?.querySelectorAll('.script-line').forEach((r) => {
+              r.classList.remove('drop-above', 'drop-below');
+            });
+          });
+        }
+        row.addEventListener('dragover', (e: DragEvent) => {
+          if (!editing) return;
+          e.preventDefault();
+          if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+          const r = row.getBoundingClientRect();
+          const before = e.clientY < r.top + r.height / 2;
+          row.classList.toggle('drop-above', before);
+          row.classList.toggle('drop-below', !before);
+        });
+        row.addEventListener('dragleave', () => {
+          row.classList.remove('drop-above', 'drop-below');
+        });
+        row.addEventListener('drop', (e: DragEvent) => {
+          if (!editing) return;
+          e.preventDefault();
+          const srcUid = e.dataTransfer?.getData('text/plain') || '';
+          row.classList.remove('drop-above', 'drop-below');
+          if (!srcUid || srcUid === uid) return;
+          const r = row.getBoundingClientRect();
+          const before = e.clientY < r.top + r.height / 2;
+          const fromIdx = findIdx(srcUid);
+          let toIdx = findIdx(uid);
+          if (fromIdx < 0 || toIdx < 0) return;
+          const [moved] = working.splice(fromIdx, 1);
+          if (fromIdx < toIdx) toIdx--; // adjust after splice
+          working.splice(before ? toIdx : toIdx + 1, 0, moved);
+          renderAll();
+          pushHistory();
         });
       };
 
-      // ----- speaker picker popover -----
+      const renderAll = () => {
+        if (!linesEl) return;
+        const wasFocusedUid = (document.activeElement?.closest('.script-line') as HTMLElement | null)?.dataset.uid;
+        linesEl.innerHTML = '';
+        working.forEach((u, idx) => linesEl.appendChild(buildRow(u, idx)));
+        if (wasFocusedUid) {
+          const row = linesEl.querySelector(`.script-line[data-uid="${cssEscape(wasFocusedUid)}"]`) as HTMLElement | null;
+          (row?.querySelector('[data-role="text"]') as HTMLElement | null)?.focus();
+        }
+      };
+
+      // ----- popovers -----
+      const positionPopup = (popup: HTMLElement, anchor: HTMLElement) => {
+        popup.classList.remove('hidden');
+        popup.style.visibility = 'hidden';
+        popup.style.left = '0px';
+        popup.style.top = '0px';
+        const ar = anchor.getBoundingClientRect();
+        const pr = popup.getBoundingClientRect();
+        let left = ar.left;
+        let top = ar.bottom + 4;
+        if (left + pr.width > window.innerWidth - 8) left = Math.max(8, window.innerWidth - pr.width - 8);
+        if (top + pr.height > window.innerHeight - 8) top = ar.top - pr.height - 4;
+        popup.style.left = `${left}px`;
+        popup.style.top = `${top}px`;
+        popup.style.visibility = 'visible';
+      };
+
       let pickerForUid: string | null = null;
       const openSpeakerPicker = (uid: string, anchor: HTMLElement) => {
         if (!speakerPop) return;
+        closePopups();
         pickerForUid = uid;
         speakerPop.innerHTML = '';
         for (const opt of boot.speakerOptions) {
@@ -415,39 +560,31 @@ const editorBootstrap = {
               const speakerEl = row?.querySelector('[data-role="speaker"]') as HTMLElement | null;
               if (speakerEl) speakerEl.textContent = opt;
               row?.classList.add('dirty');
-              markDirty();
+              pushHistory();
             }
             closePopups();
           });
           speakerPop.appendChild(b);
         }
-        const r = anchor.getBoundingClientRect();
-        speakerPop.style.left = `${r.left}px`;
-        speakerPop.style.top = `${r.bottom + 4}px`;
-        speakerPop.classList.remove('hidden');
+        positionPopup(speakerPop, anchor);
       };
 
-      // ----- row menu popover -----
       let menuForUid: string | null = null;
       let menuTrigger: HTMLElement | null = null;
       const openRowMenu = (uid: string, anchor: HTMLElement) => {
         if (!rowMenu) return;
+        closePopups();
         menuForUid = uid;
-        menuTrigger?.classList.remove('pinned');
         menuTrigger = anchor;
         anchor.classList.add('pinned');
-        const r = anchor.getBoundingClientRect();
-        rowMenu.style.left = `${Math.min(r.left, window.innerWidth - 160)}px`;
-        rowMenu.style.top = `${r.bottom + 4}px`;
-        rowMenu.classList.remove('hidden');
+        positionPopup(rowMenu, anchor);
       };
 
       rowMenu?.querySelectorAll<HTMLButtonElement>('button[data-action]').forEach((b) => {
         b.addEventListener('click', () => {
           if (!menuForUid) return;
-          const action = b.dataset.action;
-          const uid = menuForUid;
-          handleRowAction(action!, uid);
+          const action = b.dataset.action!;
+          handleRowAction(action, menuForUid);
           closePopups();
         });
       });
@@ -457,42 +594,18 @@ const editorBootstrap = {
         if (idx < 0) return;
         if (action === 'add-above' || action === 'add-below') {
           const cur = working[idx];
+          const fresh: Utt = { id: newId(), t: cur.t, speaker: cur.speaker, text: '' };
           const insertAt = action === 'add-above' ? idx : idx + 1;
-          const fresh: Utt = {
-            id: newId(),
-            t: cur.t,
-            speaker: cur.speaker,
-            text: '',
-          };
           working.splice(insertAt, 0, fresh);
-          // insert DOM
-          const newRow = buildRowFor(fresh, insertAt);
-          const curRow = linesEl?.querySelector(`.script-line[data-uid="${cssEscape(uid)}"]`) as HTMLElement | null;
-          if (curRow && linesEl) {
-            if (action === 'add-above') curRow.before(newRow);
-            else curRow.after(newRow);
-            wireRow(newRow);
-            (newRow.querySelector('[data-role="text"]') as HTMLElement | null)?.focus();
-          }
-          markDirty();
-        } else if (action === 'up' || action === 'down') {
-          const swap = action === 'up' ? idx - 1 : idx + 1;
-          if (swap < 0 || swap >= working.length) return;
-          [working[idx], working[swap]] = [working[swap], working[idx]];
-          // swap DOM
-          const a = linesEl?.querySelector(`.script-line[data-uid="${cssEscape(working[idx].id)}"]`) as HTMLElement | null;
-          const b = linesEl?.querySelector(`.script-line[data-uid="${cssEscape(working[swap].id)}"]`) as HTMLElement | null;
-          if (a && b && linesEl) {
-            if (action === 'up') a.before(b);
-            else a.after(b);
-          }
-          markDirty();
+          renderAll();
+          pushHistory();
+          const newRow = linesEl?.querySelector(`.script-line[data-uid="${cssEscape(fresh.id)}"]`) as HTMLElement | null;
+          (newRow?.querySelector('[data-role="text"]') as HTMLElement | null)?.focus();
         } else if (action === 'del') {
           if (!confirm('删除这一行？')) return;
           working.splice(idx, 1);
-          const row = linesEl?.querySelector(`.script-line[data-uid="${cssEscape(uid)}"]`) as HTMLElement | null;
-          row?.remove();
-          markDirty();
+          renderAll();
+          pushHistory();
         }
       };
 
@@ -500,36 +613,50 @@ const editorBootstrap = {
         rowMenu?.classList.add('hidden');
         speakerPop?.classList.add('hidden');
         menuTrigger?.classList.remove('pinned');
-        menuTrigger = null;
-        menuForUid = null;
-        pickerForUid = null;
+        menuTrigger = null; menuForUid = null; pickerForUid = null;
       };
       document.addEventListener('click', (e) => {
-        if (rowMenu && !rowMenu.contains(e.target as Node) && speakerPop && !speakerPop.contains(e.target as Node)) {
-          closePopups();
-        }
+        const t = e.target as Node;
+        if (rowMenu && !rowMenu.contains(t) && speakerPop && !speakerPop.contains(t)) closePopups();
       });
       window.addEventListener('scroll', closePopups, true);
       window.addEventListener('resize', closePopups);
 
-      // ----- enter / exit edit mode -----
+      // ----- keyboard shortcuts -----
+      window.addEventListener('keydown', (e) => {
+        if (!editing) return;
+        const isMac = navigator.platform.toUpperCase().includes('MAC');
+        const mod = isMac ? e.metaKey : e.ctrlKey;
+        if (mod && !e.altKey && (e.key === 'z' || e.key === 'Z')) {
+          e.preventDefault();
+          if (e.shiftKey) redo(); else undo();
+        } else if (mod && !e.altKey && e.key === 'y') {
+          e.preventDefault(); redo();
+        } else if (mod && e.key === 's') {
+          e.preventDefault(); save();
+        } else if (e.key === 'Escape') {
+          closePopups();
+        }
+      });
+
+      // ----- enter / exit -----
       const enterEdit = () => {
         if (!linesEl || !toolbar) return;
         editing = true;
-        linesEl.classList.add('editing');
         toolbar.classList.remove('hidden');
-        document.body.style.paddingBottom = '64px';
-        setStatus('·');
-        // wire each existing row
-        linesEl.querySelectorAll<HTMLElement>('.script-line').forEach(wireRow);
+        // re-render existing rows with editor markup (drag handle, etc.)
+        linesEl.classList.add('editing');
+        renderAll();
+        updateButtons();
       };
-
-      const exitEdit = (force = false) => {
-        if (dirty && !force && !confirm('有未保存改动，确定退出？')) return;
-        location.reload(); // simplest: reload to discard any DOM mess
+      const exitEdit = () => {
+        const dirty = JSON.stringify(working) !== JSON.stringify(boot.utterances);
+        if (dirty && !confirm('有未保存改动，确定退出？')) return;
+        location.reload();
       };
 
       const save = async () => {
+        commitPendingTextEdit();
         setStatus('保存中…');
         try {
           const r = await fetch(`/api/dev/dialogue/${encodeURIComponent(boot.slug)}`, {
@@ -542,7 +669,7 @@ const editorBootstrap = {
           setTimeout(() => location.reload(), 300);
         } catch (e) {
           setStatus('保存失败');
-          alert(`保存失败:\n${(e as Error).message}\n\n（dev API 仅在 npm run dev 模式下可用）`);
+          alert(`保存失败：\n${(e as Error).message}\n\n（编辑器仅在 npm run dev 模式下可用）`);
         }
       };
 
@@ -553,14 +680,16 @@ const editorBootstrap = {
           if (!r.ok) throw new Error(`HTTP ${r.status}: ${await r.text()}`);
           location.href = '/web/manzai/';
         } catch (e) {
-          alert(`删除失败:\n${(e as Error).message}`);
+          alert(`删除失败：\n${(e as Error).message}`);
         }
       };
 
       enterBtn?.addEventListener('click', enterEdit);
-      cancelBtn?.addEventListener('click', () => exitEdit());
+      cancelBtn?.addEventListener('click', exitEdit);
       saveBtn?.addEventListener('click', save);
       deleteEntryBtn?.addEventListener('click', deleteEntry);
+      undoBtn?.addEventListener('click', undo);
+      redoBtn?.addEventListener('click', redo);
     }
   </script>
 </Base>
