@@ -8,7 +8,7 @@ source:
   uploader: 中川家チャンネル
   uploaded_at: '2020-03-20'
   duration_sec: 266
-  fetched_at: '2026-04-28T07:10:25+00:00'
+  fetched_at: '2026-04-28T07:12:36+00:00'
   fetched_with: yt-dlp/2026.03.17
 language: auto
 tags:
