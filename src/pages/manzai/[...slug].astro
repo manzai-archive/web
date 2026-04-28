@@ -76,9 +76,13 @@ const perfLang = perf?.data.language ?? sourceLang;
       <h1 class="text-3xl leading-tight mb-5" lang={sourceLang}>{entry.data.title}</h1>
 
       {Object.keys(roles).length > 0 && (
-        <div class="text-[13px] mb-3 space-x-3" lang={perfLang}>
-          {Object.entries(roles).map(([name, role]: [string, string]) => (
-            <span><b class="font-medium">{name}</b><span class="ml-1.5" style="color: var(--color-ink-faint)">{role}</span></span>
+        <div class="text-[13px] mb-3" lang={perfLang}>
+          {Object.entries(roles).map(([name, role]: [string, string], i: number) => (
+            <>
+              {i > 0 && <span class="mx-2" style="color: var(--color-ink-faint)">·</span>}
+              <span class="font-medium">{name}</span>
+              <span class="ml-1.5" style="color: var(--color-ink-faint)">{role}</span>
+            </>
           ))}
         </div>
       )}
