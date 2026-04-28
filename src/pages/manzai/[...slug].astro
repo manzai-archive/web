@@ -96,13 +96,13 @@ const perfLang = perf?.data.language ?? sourceLang;
     <div class="script-container" data-display={defaultLang} data-pagefind-body>
       {availableLangs.length > 1 && (
         <div class="lang-toggle flex gap-1 mb-6 text-[12px] items-center">
-          <span class="mr-2" style="color: var(--color-ink-faint)">显示</span>
+          <span class="mr-2 text-[var(--color-ink-faint)]">显示</span>
           {availableLangs.map((lang) => (
-            <button type="button" class="lang-btn px-2.5 py-1 rounded border transition-colors" style="border-color: var(--color-rule); color: var(--color-ink-soft)" data-set-lang={lang}>
+            <button type="button" class="lang-btn px-2.5 py-1 rounded border border-[var(--color-rule)] text-[var(--color-ink-soft)] transition-colors" data-set-lang={lang}>
               {langLabel[lang] ?? lang}
             </button>
           ))}
-          <button type="button" class="lang-btn px-2.5 py-1 rounded border transition-colors" style="border-color: var(--color-rule); color: var(--color-ink-soft)" data-set-lang="both">双语</button>
+          <button type="button" class="lang-btn px-2.5 py-1 rounded border border-[var(--color-rule)] text-[var(--color-ink-soft)] transition-colors" data-set-lang="both">双语</button>
         </div>
       )}
 

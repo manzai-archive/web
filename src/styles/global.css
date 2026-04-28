@@ -101,7 +101,7 @@ a {
 .script-container[data-display="ja"] .lang-btn[data-set-lang="ja"],
 .script-container[data-display="en"] .lang-btn[data-set-lang="en"],
 .script-container[data-display="both"] .lang-btn[data-set-lang="both"] {
-  background: var(--color-ink);
-  color: white;
-  border-color: var(--color-ink);
+  background: var(--color-ink) !important;
+  color: #fff !important;
+  border-color: var(--color-ink) !important;
 }
