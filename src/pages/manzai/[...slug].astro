@@ -30,13 +30,30 @@ for (const [lang, arr] of Object.entries(translations)) {
 const availableLangs = [sourceLang, ...Object.keys(validTranslations).filter((l) => l !== sourceLang)];
 const defaultLang = availableLangs.includes('zh') ? 'zh' : sourceLang;
 
+// Comedy form & per-performance roles
+const FORM_LABEL: Record<string, string> = {
+  manzai: '漫才',
+  xiangsheng: '相声',
+  standup: '脱口秀',
+  sketch: 'コント / 小品',
+  rakugo: '落語',
+  other: '其他',
+};
+const formLabel = FORM_LABEL[entry.data.form] ?? entry.data.form;
+const roles: Record<string, string> = entry.data.roles ?? {};
+const speakerWithRole = (name: string) => {
+  const r = roles[name];
+  return r ? `${name} (${r})` : name;
+};
+
 const lines = bodyMatches.map((m, i) => {
   const texts: Record<string, string> = { [sourceLang]: m[3] };
   for (const [lang, arr] of Object.entries(validTranslations)) {
     texts[lang] = arr[i];
   }
+  const rawSpeaker = speakerMap[m[1]] ?? m[1];
   return {
-    speaker: speakerMap[m[1]] ?? m[1],
+    speaker: speakerWithRole(rawSpeaker),
     time: m[2],
     texts,
   };
@@ -61,7 +78,8 @@ const perfLang = perf?.data.language ?? sourceLang;
         ) : perfName}
       </div>
       <h1 class="text-2xl font-bold mb-2" lang={sourceLang}>{entry.data.title}</h1>
-      <div class="flex gap-1.5 text-xs flex-wrap mb-3">
+      <div class="flex gap-1.5 text-xs flex-wrap mb-2">
+        <span class="px-2 py-0.5 bg-blue-50 text-blue-700 rounded font-medium">{formLabel}</span>
         {entry.data.tags.map((t: string) => (
           <span class="px-2 py-0.5 bg-neutral-100 rounded">{t}</span>
         ))}
@@ -69,6 +87,14 @@ const perfLang = perf?.data.language ?? sourceLang;
           <span class="px-2 py-0.5 bg-amber-100 text-amber-700 rounded">draft (未校对)</span>
         )}
       </div>
+      {Object.keys(roles).length > 0 && (
+        <div class="text-sm text-neutral-700 mb-3 flex gap-3 flex-wrap" lang={perfLang}>
+          <span class="text-neutral-500">出演：</span>
+          {Object.entries(roles).map(([name, role]: [string, string]) => (
+            <span><b>{name}</b> <span class="text-neutral-500">({role})</span></span>
+          ))}
+        </div>
+      )}
       <div class="text-sm">
         <a class="underline text-blue-700" href={entry.data.source.url} target="_blank" rel="noopener">
           原视频 ({entry.data.source.platform})

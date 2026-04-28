@@ -45,6 +45,14 @@ const manzai = defineCollection({
     language: z.string().default('ja'),
     tags: z.array(z.string()).default([]),
     speakers: z.record(z.string(), z.string()).default({}),
+    // Comedy form. Accepted values include: manzai (漫才), xiangsheng (相声),
+    // standup (脱口秀 / スタンダップ), sketch (コント / 小品), rakugo (落語).
+    // Free-form string so the pipeline can write CJK or English tokens.
+    form: z.string().default('manzai'),
+    // Per-performance role assignment. Map: performer-name → role label.
+    // For manzai: ツッコミ / ボケ (or 捧/逗哏 for Chinese xiangsheng).
+    // For standup: usually empty (single performer).
+    roles: z.record(z.string(), z.string()).optional(),
     sensitivity: z.enum(['normal', 'high']).default('normal'),
     status: z.enum(['draft', 'reviewed']).default('draft'),
     contributed_by: z.string().optional(),
