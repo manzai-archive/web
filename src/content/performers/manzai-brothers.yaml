@@ -5,8 +5,8 @@ language: zh
 region: cn
 members:
   - name: 徐浩伦
-    role: ツッコミ
-  - name: 谭湘文
     role: ボケ
+  - name: 谭湘文
+    role: ツッコミ
 description: |
   00 后中文漫才组合，《脱口秀和 Ta 的朋友们》第二季冠军。
