@@ -13,7 +13,9 @@ source:
   fetched_with: yt-dlp/2026.03.17
 language: zh
 tags:
-- ''
+- 央视春晚
+- '2026'
+- 谁的菜
 speakers:
   徐浩伦: 徐浩伦
   谭湘文: 谭湘文
