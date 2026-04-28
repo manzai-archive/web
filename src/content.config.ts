@@ -47,18 +47,12 @@ const manzai = defineCollection({
     speakers: z.record(z.string(), z.string()).default({}),
     // Comedy form. Accepted values include: manzai (漫才), xiangsheng (相声),
     // standup (脱口秀 / スタンダップ), sketch (コント / 小品), rakugo (落語).
-    // Free-form string so the pipeline can write CJK or English tokens.
     form: z.string().default('manzai'),
-    // Per-performance role assignment. Map: performer-name → role label.
-    // For manzai: ツッコミ / ボケ (or 捧/逗哏 for Chinese xiangsheng).
-    // For standup: usually empty (single performer).
     roles: z.record(z.string(), z.string()).optional(),
     sensitivity: z.enum(['normal', 'high']).default('normal'),
     status: z.enum(['draft', 'reviewed']).default('draft'),
     contributed_by: z.string().optional(),
     license_note: z.string().optional(),
-    // Per-line translations: lang → array, length must equal body line count.
-    translations: z.record(z.string(), z.array(z.string())).optional(),
     // Machine-written by the pipeline; lets us re-run when models improve.
     ingestion: z
       .object({
@@ -83,4 +77,29 @@ const manzai = defineCollection({
   }),
 });
 
-export const collections = { manzai, performers };
+// Dialogue is stored separately from the entry .md so it can be edited
+// as structured data (per-utterance speaker / text / time) without
+// touching the entry's metadata. Files live under src/content/dialogues
+// and share the SAME slug as their entry .md.
+const UtteranceSchema = z.object({
+  id: z.string(),
+  // HH:MM:SS — when this utterance starts in the source audio
+  t: z.string(),
+  speaker: z.string(),
+  text: z.string(),
+  // Per-utterance translations: { zh: "...", en: "..." }
+  translations: z.record(z.string(), z.string()).optional(),
+  // Editor metadata (for future audit trail / web editor)
+  edited_by: z.string().optional(),
+  edited_at: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+const dialogues = defineCollection({
+  loader: glob({ pattern: '**/*.yaml', base: './src/content/dialogues' }),
+  schema: z.object({
+    utterances: z.array(UtteranceSchema).default([]),
+  }),
+});
+
+export const collections = { manzai, performers, dialogues };

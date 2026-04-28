@@ -10,24 +10,46 @@ export async function getStaticPaths() {
 
 const { entry } = Astro.props;
 
-const lineRegex = /\*\*(.+?)\*\*\s*\[(\d{2}:\d{2}:\d{2})\]\s*(.+)/;
 const speakerMap: Record<string, string> = entry.data.speakers ?? {};
 const sourceLang = entry.data.language;
-const translations: Record<string, string[]> = entry.data.translations ?? {};
 
-const bodyMatches = entry.body
-  .split('\n')
-  .map((l: string) => l.match(lineRegex))
-  .filter((m: RegExpMatchArray | null): m is RegExpMatchArray => m !== null);
+// Load the structured dialogue (separate yaml file with the same slug as
+// this entry .md). Falls back to the legacy in-body markdown format if
+// no dialogue file exists yet.
+const dialogueEntry = await getEntry('dialogues', entry.id);
 
-const validTranslations: Record<string, string[]> = {};
-for (const [lang, arr] of Object.entries(translations)) {
-  if (Array.isArray(arr) && arr.length === bodyMatches.length) {
-    validTranslations[lang] = arr;
+type Utterance = { speaker: string; time: string; texts: Record<string, string> };
+let lines: Utterance[] = [];
+
+if (dialogueEntry) {
+  for (const u of dialogueEntry.data.utterances) {
+    const texts: Record<string, string> = { [sourceLang]: u.text };
+    for (const [lang, t] of Object.entries(u.translations ?? {})) {
+      if (typeof t === 'string') texts[lang] = t;
+    }
+    lines.push({
+      speaker: speakerMap[u.speaker] ?? u.speaker,
+      time: u.t,
+      texts,
+    });
   }
+} else {
+  // Legacy path: parse `**Speaker** [hh:mm:ss] text` from entry.body
+  const lineRegex = /\*\*(.+?)\*\*\s*\[(\d{2}:\d{2}:\d{2})\]\s*(.+)/;
+  const bodyMatches = entry.body
+    .split('\n')
+    .map((l: string) => l.match(lineRegex))
+    .filter((m: RegExpMatchArray | null): m is RegExpMatchArray => m !== null);
+  lines = bodyMatches.map((m) => ({
+    speaker: speakerMap[m[1]] ?? m[1],
+    time: m[2],
+    texts: { [sourceLang]: m[3] },
+  }));
 }
 
-const availableLangs = [sourceLang, ...Object.keys(validTranslations).filter((l) => l !== sourceLang)];
+const availableLangs = Array.from(
+  new Set(lines.flatMap((l) => Object.keys(l.texts)))
+).sort((a, b) => (a === sourceLang ? -1 : b === sourceLang ? 1 : 0));
 const defaultLang = availableLangs.includes('zh') ? 'zh' : sourceLang;
 
 const FORM_LABEL: Record<string, string> = {
@@ -40,18 +62,6 @@ const FORM_LABEL: Record<string, string> = {
 };
 const formLabel = FORM_LABEL[entry.data.form] ?? entry.data.form;
 const roles: Record<string, string> = entry.data.roles ?? {};
-
-const lines = bodyMatches.map((m, i) => {
-  const texts: Record<string, string> = { [sourceLang]: m[3] };
-  for (const [lang, arr] of Object.entries(validTranslations)) {
-    texts[lang] = arr[i];
-  }
-  return {
-    speaker: speakerMap[m[1]] ?? m[1],
-    time: m[2],
-    texts,
-  };
-});
 
 const speakerOrder = Array.from(new Set(lines.map((l) => l.speaker)));
 
