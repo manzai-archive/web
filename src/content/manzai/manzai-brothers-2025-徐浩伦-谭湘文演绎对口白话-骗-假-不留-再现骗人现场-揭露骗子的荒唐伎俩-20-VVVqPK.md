@@ -3,6 +3,9 @@ title: 徐浩伦 谭湘文演绎对口白话《“骗”“假”不留》再现
 performers:
 - manzai-brothers
 form: manzai
+roles:
+  徐浩伦: ツッコミ
+  谭湘文: ボケ
 source:
   platform: youtube
   url: https://www.youtube.com/watch?v=VVVqPKkS9zc

@@ -3,6 +3,9 @@ title: 【春节必看小品】漫才兄弟碰上听不懂话的理发师 还冒
 performers:
 - manzai-brothers
 form: manzai
+roles:
+  徐浩伦: ツッコミ
+  谭湘文: ボケ
 source:
   platform: youtube
   url: https://www.youtube.com/watch?v=_Fw3jXi5Eyk
