@@ -235,12 +235,25 @@ const editorBootstrap = {
       padding-left: 30px;
     }
     .lines.editing .script-line.dragging {
-      opacity: 0.35;
-      transform: scale(0.985);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.10);
-      border-color: var(--color-ink-faint);
-      background-color: var(--color-hover-tint);
+      opacity: 0.25;
+      filter: grayscale(0.4);
     }
+
+    /* Ghost element (cloned row) that follows the cursor during drag */
+    .drag-ghost {
+      box-sizing: border-box;
+      padding: 10px 36px 10px 32px;
+      border: 1px solid var(--color-ink-faint);
+      border-radius: 4px;
+      background-color: var(--color-bg);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.20), 0 2px 8px rgba(0,0,0,0.10);
+      opacity: 0.94;
+      transform: rotate(0.6deg);
+      cursor: grabbing;
+      will-change: left, top;
+    }
+    .drag-ghost .speaker { font-weight: 500; }
+    .drag-ghost > * { pointer-events: none; }
     .lines.editing .script-line.drop-above {
       margin-top: 38px;
     }
@@ -558,50 +571,176 @@ const editorBootstrap = {
           openRowMenu(uid, trigger);
         });
 
-        // ----- drag & drop reorder -----
+        // ----- pointer-based drag-to-reorder -----
+        // (HTML5 drag/drop has unreliable dragImage; we roll our own
+        // ghost element that follows the cursor pixel-perfectly.)
         if (dragHandle) {
-          dragHandle.addEventListener('dragstart', (e: DragEvent) => {
-            commitPendingTextEdit();
-            row.classList.add('dragging');
-            e.dataTransfer?.setData('text/plain', uid);
-            if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
-          });
-          dragHandle.addEventListener('dragend', () => {
-            row.classList.remove('dragging');
-            linesEl?.querySelectorAll('.script-line').forEach((r) => {
-              r.classList.remove('drop-above', 'drop-below');
-            });
+          dragHandle.draggable = false;
+          dragHandle.addEventListener('pointerdown', (e: PointerEvent) => {
+            if (e.button !== 0) return;
+            e.preventDefault();
+            startPointerDrag(row, e);
           });
         }
-        row.addEventListener('dragover', (e: DragEvent) => {
-          if (!editing) return;
-          e.preventDefault();
-          if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-          const r = row.getBoundingClientRect();
-          const before = e.clientY < r.top + r.height / 2;
-          row.classList.toggle('drop-above', before);
-          row.classList.toggle('drop-below', !before);
+      };
+
+      // ----- pointer drag impl -----
+      type DragState = {
+        row: HTMLElement;
+        ghost: HTMLElement;
+        offsetX: number;
+        offsetY: number;
+        targetRow: HTMLElement | null;
+        before: boolean;
+        autoScrollDir: number; // -1 / 0 / 1
+      };
+      let drag: DragState | null = null;
+      let autoScrollFrame = 0;
+
+      const findDropTarget = (clientY: number): { row: HTMLElement; before: boolean } | null => {
+        const allRows = Array.from(linesEl?.querySelectorAll<HTMLElement>('.script-line') || []);
+        if (allRows.length === 0) return null;
+        // First: row directly under the cursor
+        for (const r of allRows) {
+          if (r === drag?.row) continue;
+          const rect = r.getBoundingClientRect();
+          if (clientY >= rect.top && clientY <= rect.bottom) {
+            return { row: r, before: clientY < rect.top + rect.height / 2 };
+          }
+        }
+        // Else: nearest row by vertical centre
+        let best: HTMLElement | null = null;
+        let bestDist = Infinity;
+        let bestBefore = true;
+        for (const r of allRows) {
+          if (r === drag?.row) continue;
+          const rect = r.getBoundingClientRect();
+          const cy = rect.top + rect.height / 2;
+          const d = Math.abs(clientY - cy);
+          if (d < bestDist) {
+            bestDist = d; best = r; bestBefore = clientY < cy;
+          }
+        }
+        return best ? { row: best, before: bestBefore } : null;
+      };
+
+      const clearDropClasses = () => {
+        linesEl?.querySelectorAll('.script-line').forEach((r) => {
+          r.classList.remove('drop-above', 'drop-below');
         });
-        row.addEventListener('dragleave', () => {
-          row.classList.remove('drop-above', 'drop-below');
-        });
-        row.addEventListener('drop', (e: DragEvent) => {
-          if (!editing) return;
-          e.preventDefault();
-          const srcUid = e.dataTransfer?.getData('text/plain') || '';
-          row.classList.remove('drop-above', 'drop-below');
-          if (!srcUid || srcUid === uid) return;
-          const r = row.getBoundingClientRect();
-          const before = e.clientY < r.top + r.height / 2;
-          const fromIdx = findIdx(srcUid);
-          let toIdx = findIdx(uid);
-          if (fromIdx < 0 || toIdx < 0) return;
-          const [moved] = working.splice(fromIdx, 1);
-          if (fromIdx < toIdx) toIdx--; // adjust after splice
-          working.splice(before ? toIdx : toIdx + 1, 0, moved);
-          renderAll();
-          pushHistory();
-        });
+      };
+
+      const stopAutoScroll = () => {
+        if (autoScrollFrame) {
+          cancelAnimationFrame(autoScrollFrame);
+          autoScrollFrame = 0;
+        }
+      };
+      const tickAutoScroll = () => {
+        if (!drag) { stopAutoScroll(); return; }
+        if (drag.autoScrollDir !== 0) {
+          window.scrollBy(0, drag.autoScrollDir * 12);
+        }
+        autoScrollFrame = requestAnimationFrame(tickAutoScroll);
+      };
+
+      const startPointerDrag = (row: HTMLElement, e: PointerEvent) => {
+        commitPendingTextEdit();
+        closePopups();
+        const rect = row.getBoundingClientRect();
+        const ghost = row.cloneNode(true) as HTMLElement;
+        ghost.classList.add('drag-ghost');
+        // strip handles inside ghost so they don't intercept anything
+        ghost.querySelectorAll('.row-drag-handle, .row-menu-trigger').forEach((el) => el.remove());
+        ghost.style.position = 'fixed';
+        ghost.style.left = `${rect.left}px`;
+        ghost.style.top = `${rect.top}px`;
+        ghost.style.width = `${rect.width}px`;
+        ghost.style.height = `${rect.height}px`;
+        ghost.style.zIndex = '1000';
+        ghost.style.pointerEvents = 'none';
+        document.body.appendChild(ghost);
+        row.classList.add('dragging');
+        drag = {
+          row, ghost,
+          offsetX: e.clientX - rect.left,
+          offsetY: e.clientY - rect.top,
+          targetRow: null,
+          before: true,
+          autoScrollDir: 0,
+        };
+        document.addEventListener('pointermove', onPointerDragMove);
+        document.addEventListener('pointerup', onPointerDragEnd, { once: true });
+        document.addEventListener('pointercancel', onPointerDragEnd, { once: true });
+        document.body.style.userSelect = 'none';
+        document.body.style.cursor = 'grabbing';
+        autoScrollFrame = requestAnimationFrame(tickAutoScroll);
+      };
+
+      const onPointerDragMove = (e: PointerEvent) => {
+        if (!drag) return;
+        // ghost follows cursor (preserve original grab offset so it
+        // appears glued to the handle the user grabbed)
+        drag.ghost.style.left = `${e.clientX - drag.offsetX}px`;
+        drag.ghost.style.top = `${e.clientY - drag.offsetY}px`;
+        // pick drop target
+        const t = findDropTarget(e.clientY);
+        clearDropClasses();
+        if (t) {
+          t.row.classList.add(t.before ? 'drop-above' : 'drop-below');
+          drag.targetRow = t.row;
+          drag.before = t.before;
+        } else {
+          drag.targetRow = null;
+        }
+        // edge-of-screen auto-scroll
+        const margin = 60;
+        if (e.clientY < margin) drag.autoScrollDir = -1;
+        else if (e.clientY > window.innerHeight - margin) drag.autoScrollDir = 1;
+        else drag.autoScrollDir = 0;
+      };
+
+      const onPointerDragEnd = (_e: PointerEvent) => {
+        if (!drag) return;
+        document.removeEventListener('pointermove', onPointerDragMove);
+        document.body.style.userSelect = '';
+        document.body.style.cursor = '';
+        stopAutoScroll();
+        const { row, ghost, targetRow, before } = drag;
+        // animate ghost back to (or onto) the target slot before destroying it
+        let landingRect: DOMRect;
+        if (targetRow) {
+          const tr = targetRow.getBoundingClientRect();
+          landingRect = before
+            ? new DOMRect(tr.left, tr.top - row.getBoundingClientRect().height - 6, tr.width, tr.height)
+            : new DOMRect(tr.left, tr.bottom + 6, tr.width, tr.height);
+        } else {
+          landingRect = row.getBoundingClientRect();
+        }
+        ghost.style.transition = 'left 0.18s cubic-bezier(0.2,0,0.2,1), top 0.18s cubic-bezier(0.2,0,0.2,1), opacity 0.18s';
+        ghost.style.left = `${landingRect.left}px`;
+        ghost.style.top = `${landingRect.top}px`;
+        const cleanup = () => {
+          ghost.remove();
+          row.classList.remove('dragging');
+          clearDropClasses();
+          // perform the actual reorder
+          if (targetRow && targetRow !== row) {
+            const srcUid = row.dataset.uid!;
+            const tgtUid = targetRow.dataset.uid!;
+            const fromIdx = findIdx(srcUid);
+            let toIdx = findIdx(tgtUid);
+            if (fromIdx >= 0 && toIdx >= 0) {
+              const [moved] = working.splice(fromIdx, 1);
+              if (fromIdx < toIdx) toIdx--;
+              working.splice(before ? toIdx : toIdx + 1, 0, moved);
+              renderAll();
+              pushHistory();
+            }
+          }
+        };
+        setTimeout(cleanup, 180);
+        drag = null;
       };
 
       const renderAll = () => {
