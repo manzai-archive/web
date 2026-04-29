@@ -389,39 +389,23 @@ utterances:
   text: 李晨。
 - id: u98
   t: 00:05:35
-  speaker: 谭湘文
-  text: 他有多高
+  speaker: 徐浩伦
+  text: 他有多高？
 - id: u99
   t: 00:05:35
-  speaker: 徐浩伦
-  text: 呃，1.
+  speaker: 谭湘文
+  text: 呃，1.71。
 - id: u100
-  t: 00:05:37
-  speaker: 徐浩伦
-  text: '71.'
-- id: u101
   t: 00:05:38
+  speaker: 徐浩伦
+  text: 1.7 米的靴子？
+- id: u101
+  t: 00:05:41
   speaker: 谭湘文
-  text: 7的靴子，不是1.
+  text: 不是 1.7 米的靴子啊，它是 1.7 米的身高，1.7 米的身高。
 - id: u102
-  t: 00:05:41
-  speaker: 徐浩伦
-  text: 7米的靴子啊，
-- id: u103
-  t: 00:05:41
-  speaker: 谭湘文
-  text: 它是1.
-- id: u104
-  t: 00:05:43
-  speaker: 徐浩伦
-  text: 7米的身高啊啊1.
-- id: u105
-  t: 00:05:45
-  speaker: 谭湘文
-  text: 7米的身高。
-- id: u106
   t: 00:05:46
-  speaker: 谭湘文
+  speaker: 徐浩伦
   text: 哎，对对对，还有房吗？
 - id: u107
   t: 00:05:48
