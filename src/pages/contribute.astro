@@ -2,90 +2,93 @@
 import Base from '../layouts/Base.astro';
 ---
 <Base title="贡献剧本 · 喜剧档案">
-  <h1 class="text-2xl font-bold mb-4">贡献剧本</h1>
-  <p class="mb-6 text-sm text-neutral-700">
-    在 YouTube / B 站上发现想分享的漫才？填下面表单（不需要懂 git），
-    维护者审核后会自动转写并加进档案。
+  <h1 class="text-3xl mb-4">贡献剧本</h1>
+  <p class="mb-6 text-[14px] leading-relaxed" style="color: var(--color-ink-soft)">
+    在 YouTube / B 站发现想分享的喜剧表演？填下面表单（不需要懂 git），维护者审核后会自动转写并加进档案。
   </p>
 
-  <form id="submit-form" class="space-y-4 bg-white border border-neutral-200 rounded-md p-5">
+  <form id="submit-form" class="space-y-4 border rounded-md p-5" style="border-color: var(--color-rule); background-color: var(--color-row-card)">
     <div>
-      <label class="block text-sm font-medium mb-1">视频 URL <span class="text-red-500">*</span></label>
+      <label class="block text-[13px] mb-1" style="color: var(--color-ink-soft)">视频 URL <span style="color: var(--color-warm)">*</span></label>
       <input type="url" name="url" required placeholder="https://www.youtube.com/watch?v=..."
-             class="w-full px-3 py-2 border border-neutral-300 rounded text-sm" />
+             class="w-full px-3 py-2 border rounded text-[14px] bg-transparent" style="border-color: var(--color-rule)" />
     </div>
     <div class="grid sm:grid-cols-2 gap-4">
       <div>
-        <label class="block text-sm font-medium mb-1">组合名 <span class="text-red-500">*</span></label>
+        <label class="block text-[13px] mb-1" style="color: var(--color-ink-soft)">组合名 <span style="color: var(--color-warm)">*</span></label>
         <input type="text" name="group" required placeholder="令和ロマン"
-               class="w-full px-3 py-2 border border-neutral-300 rounded text-sm" />
+               class="w-full px-3 py-2 border rounded text-[14px] bg-transparent" style="border-color: var(--color-rule)" />
       </div>
       <div>
-        <label class="block text-sm font-medium mb-1">组合 slug <span class="text-red-500">*</span></label>
+        <label class="block text-[13px] mb-1" style="color: var(--color-ink-soft)">组合 slug <span style="color: var(--color-warm)">*</span></label>
         <input type="text" name="group_slug" required placeholder="reiwaroman" pattern="[a-z0-9\-]+"
-               class="w-full px-3 py-2 border border-neutral-300 rounded text-sm" />
-        <p class="text-xs text-neutral-500 mt-1">仅小写字母、数字、连字符</p>
+               class="w-full px-3 py-2 border rounded text-[14px] bg-transparent" style="border-color: var(--color-rule)" />
+        <p class="text-[11px] mt-1" style="color: var(--color-ink-faint)">仅小写字母、数字、连字符</p>
       </div>
     </div>
     <div>
-      <label class="block text-sm font-medium mb-1">标签</label>
+      <label class="block text-[13px] mb-1" style="color: var(--color-ink-soft)">标签</label>
       <input type="text" name="tags" placeholder="M-1, 2022, 決勝"
-             class="w-full px-3 py-2 border border-neutral-300 rounded text-sm" />
-      <p class="text-xs text-neutral-500 mt-1">逗号分隔</p>
+             class="w-full px-3 py-2 border rounded text-[14px] bg-transparent" style="border-color: var(--color-rule)" />
+      <p class="text-[11px] mt-1" style="color: var(--color-ink-faint)">逗号分隔</p>
     </div>
     <div class="grid sm:grid-cols-2 gap-4">
       <div>
-        <label class="block text-sm font-medium mb-1">敏感度</label>
-        <select name="sensitivity" class="w-full px-3 py-2 border border-neutral-300 rounded text-sm">
+        <label class="block text-[13px] mb-1" style="color: var(--color-ink-soft)">敏感度</label>
+        <select name="sensitivity" class="w-full px-3 py-2 border rounded text-[14px] bg-transparent" style="border-color: var(--color-rule)">
           <option value="normal">normal（一般 UP 主、自频道）</option>
           <option value="high">high（M-1 决赛、电视节目）</option>
         </select>
       </div>
       <div>
-        <label class="block text-sm font-medium mb-1">语言（可选）</label>
+        <label class="block text-[13px] mb-1" style="color: var(--color-ink-soft)">语言（可选）</label>
         <input type="text" name="language" placeholder="ja"
-               class="w-full px-3 py-2 border border-neutral-300 rounded text-sm" />
-        <p class="text-xs text-neutral-500 mt-1">留空则自动检测</p>
+               class="w-full px-3 py-2 border rounded text-[14px] bg-transparent" style="border-color: var(--color-rule)" />
+        <p class="text-[11px] mt-1" style="color: var(--color-ink-faint)">留空则自动检测</p>
       </div>
     </div>
     <div>
-      <label class="block text-sm font-medium mb-1">备注</label>
+      <label class="block text-[13px] mb-1" style="color: var(--color-ink-soft)">备注</label>
       <textarea name="notes" rows="3" placeholder="任何对审核有帮助的信息"
-                class="w-full px-3 py-2 border border-neutral-300 rounded text-sm"></textarea>
+                class="w-full px-3 py-2 border rounded text-[14px] bg-transparent" style="border-color: var(--color-rule); resize: vertical"></textarea>
     </div>
     <button type="submit"
-            class="w-full px-4 py-2 bg-neutral-900 text-white rounded font-medium hover:bg-neutral-700 transition">
+            class="w-full px-4 py-2 rounded text-[14px] font-medium transition-opacity hover:opacity-85"
+            style="background-color: var(--color-ink); color: var(--color-bg); border: 1px solid var(--color-ink)">
       在 GitHub 上提交（需要 GH 账号）
     </button>
-    <p class="text-xs text-neutral-500 text-center">
+    <p class="text-[11px] text-center" style="color: var(--color-ink-faint)">
       点击会跳转到 GitHub 预填好的 issue 页面，确认后提交。
       没有 GH 账号？<a class="underline" href="https://github.com/join" target="_blank" rel="noopener">2 分钟注册</a>。
     </p>
   </form>
 
-  <div class="mt-8 text-sm">
-    <h2 class="font-semibold mb-2">其他贡献方式</h2>
-    <ul class="list-disc pl-6 space-y-1 text-neutral-700">
-      <li>已有干净文本？<a class="underline" href="https://github.com/manzai-archive/web/blob/main/CONTRIBUTING.md#b-手写-markdown-pr" target="_blank" rel="noopener">直接提 PR</a></li>
-      <li>能跑 Python？<a class="underline" href="https://github.com/manzai-archive/pipeline" target="_blank" rel="noopener">本地跑 pipeline</a></li>
+  <div class="mt-8 text-[14px]">
+    <h2 class="text-lg mb-2">其他贡献方式</h2>
+    <ul class="list-disc pl-6 space-y-1" style="color: var(--color-ink-soft)">
+      <li>已有干净文本？<a class="underline" href="https://github.com/manzai-archive/web/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">直接提 PR</a></li>
+      <li>能跑 Docker？<a class="underline" href="https://github.com/manzai-archive/pipeline" target="_blank" rel="noopener">本地跑 pipeline</a></li>
+      <li>本地跑 dev 站可以直接在网页上编辑保存（详情见<a class="underline" href={`${import.meta.env.BASE_URL}about/`}>关于</a>）</li>
       <li>发现某条剧本有错？<a class="underline" href="https://github.com/manzai-archive/web/issues/new/choose" target="_blank" rel="noopener">报告问题</a></li>
     </ul>
   </div>
+
+  <style>
+    /* keep form inputs readable in both themes */
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--color-edit-ring);
+      border-color: var(--color-ink-soft) !important;
+    }
+    input::placeholder, textarea::placeholder { color: var(--color-ink-faint); }
+    select option { color: var(--color-ink); background: var(--color-bg); }
+  </style>
 
   <script is:inline>
     document.getElementById('submit-form').addEventListener('submit', (e) => {
       e.preventDefault();
       const f = e.target;
       const v = (n) => f.elements[n].value.trim();
-      const body = [
-        `### 视频 URL`, v('url'), '',
-        `### 组合名 / 表演者`, v('group'), '',
-        `### 组合 slug`, v('group_slug'), '',
-        `### 标签`, v('tags') || '_未填_', '',
-        `### 版权敏感度`, v('sensitivity'), '',
-        `### 语言（可选）`, v('language') || '_自动检测_', '',
-        `### 备注`, v('notes') || '_无_',
-      ].join('\n');
       const url = new URL('https://github.com/manzai-archive/web/issues/new');
       url.searchParams.set('template', 'submit-script.yml');
       url.searchParams.set('title', `[提交] ${v('group')} — `);
