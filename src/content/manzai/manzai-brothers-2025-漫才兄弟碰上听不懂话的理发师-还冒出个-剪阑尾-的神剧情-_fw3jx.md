@@ -1,5 +1,5 @@
 ---
-title: 漫才兄弟碰上听不懂话的理发师 还冒出个“剪阑尾”的神剧情
+title: 听不懂话的理发师
 performers:
 - manzai-brothers
 form: manzai
