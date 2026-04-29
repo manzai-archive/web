@@ -235,42 +235,12 @@ const editorBootstrap = {
       padding-left: 30px;
     }
     .lines.editing .script-line.dragging {
-      opacity: 0.25;
-      filter: grayscale(0.4);
-    }
-
-    /* Ghost element (cloned row) that follows the cursor during drag */
-    .drag-ghost {
-      box-sizing: border-box;
-      padding: 10px 36px 10px 32px;
-      border: 1px solid var(--color-ink-faint);
-      border-radius: 4px;
-      background-color: var(--color-bg);
-      box-shadow: 0 12px 32px rgba(0,0,0,0.20), 0 2px 8px rgba(0,0,0,0.10);
-      opacity: 0.94;
-      transform: rotate(0.6deg);
       cursor: grabbing;
-      will-change: left, top;
+      z-index: 10;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+      border-color: var(--color-ink-faint);
+      background-color: var(--color-bg);
     }
-    .drag-ghost .speaker { font-weight: 500; }
-    .drag-ghost > * { pointer-events: none; }
-    .lines.editing .script-line.drop-above {
-      margin-top: 38px;
-    }
-    .lines.editing .script-line.drop-below {
-      margin-bottom: 38px;
-    }
-    .lines.editing .script-line.drop-above::before,
-    .lines.editing .script-line.drop-below::after {
-      content: '';
-      position: absolute;
-      left: 0; right: 0;
-      height: 2px;
-      background-color: var(--color-ink);
-      border-radius: 1px;
-    }
-    .lines.editing .script-line.drop-above::before { top: -20px; }
-    .lines.editing .script-line.drop-below::after { bottom: -20px; }
 
     .lines.editing [data-role="speaker"] {
       cursor: pointer;
@@ -584,163 +554,122 @@ const editorBootstrap = {
         }
       };
 
-      // ----- pointer drag impl -----
-      type DragState = {
-        row: HTMLElement;
-        ghost: HTMLElement;
-        offsetX: number;
-        offsetY: number;
-        targetRow: HTMLElement | null;
-        before: boolean;
-        autoScrollDir: number; // -1 / 0 / 1
-      };
-      let drag: DragState | null = null;
+      // ----- SortableJS-style dynamic-list drag -----
+      // The dragged row follows the cursor with translateY (no transition).
+      // Other rows shift up/down by one slot using CSS transition on
+      // transform — the list reflows live as you drag.
+      const GAP_PX = 6; // matches `.lines.editing.space-y-3 > * + * { margin-top }`
       let autoScrollFrame = 0;
-
-      const findDropTarget = (clientY: number): { row: HTMLElement; before: boolean } | null => {
-        const allRows = Array.from(linesEl?.querySelectorAll<HTMLElement>('.script-line') || []);
-        if (allRows.length === 0) return null;
-        // First: row directly under the cursor
-        for (const r of allRows) {
-          if (r === drag?.row) continue;
-          const rect = r.getBoundingClientRect();
-          if (clientY >= rect.top && clientY <= rect.bottom) {
-            return { row: r, before: clientY < rect.top + rect.height / 2 };
-          }
-        }
-        // Else: nearest row by vertical centre
-        let best: HTMLElement | null = null;
-        let bestDist = Infinity;
-        let bestBefore = true;
-        for (const r of allRows) {
-          if (r === drag?.row) continue;
-          const rect = r.getBoundingClientRect();
-          const cy = rect.top + rect.height / 2;
-          const d = Math.abs(clientY - cy);
-          if (d < bestDist) {
-            bestDist = d; best = r; bestBefore = clientY < cy;
-          }
-        }
-        return best ? { row: best, before: bestBefore } : null;
-      };
-
-      const clearDropClasses = () => {
-        linesEl?.querySelectorAll('.script-line').forEach((r) => {
-          r.classList.remove('drop-above', 'drop-below');
-        });
-      };
-
-      const stopAutoScroll = () => {
-        if (autoScrollFrame) {
-          cancelAnimationFrame(autoScrollFrame);
-          autoScrollFrame = 0;
-        }
-      };
-      const tickAutoScroll = () => {
-        if (!drag) { stopAutoScroll(); return; }
-        if (drag.autoScrollDir !== 0) {
-          window.scrollBy(0, drag.autoScrollDir * 12);
-        }
-        autoScrollFrame = requestAnimationFrame(tickAutoScroll);
-      };
 
       const startPointerDrag = (row: HTMLElement, e: PointerEvent) => {
         commitPendingTextEdit();
         closePopups();
-        const rect = row.getBoundingClientRect();
-        const ghost = row.cloneNode(true) as HTMLElement;
-        ghost.classList.add('drag-ghost');
-        // strip handles inside ghost so they don't intercept anything
-        ghost.querySelectorAll('.row-drag-handle, .row-menu-trigger').forEach((el) => el.remove());
-        ghost.style.position = 'fixed';
-        ghost.style.left = `${rect.left}px`;
-        ghost.style.top = `${rect.top}px`;
-        ghost.style.width = `${rect.width}px`;
-        ghost.style.height = `${rect.height}px`;
-        ghost.style.zIndex = '1000';
-        ghost.style.pointerEvents = 'none';
-        document.body.appendChild(ghost);
+        const allRows = Array.from(linesEl?.querySelectorAll<HTMLElement>('.script-line') || []);
+        const fromIdx = allRows.indexOf(row);
+        if (fromIdx < 0) return;
+        const rects = allRows.map((r) => r.getBoundingClientRect());
+        const draggedH = rects[fromIdx].height;
+        const grabY = e.clientY;
+        let currentIdx = fromIdx;
+        let scrollDir = 0;
+
+        // dragged row follows cursor instantly
         row.classList.add('dragging');
-        drag = {
-          row, ghost,
-          offsetX: e.clientX - rect.left,
-          offsetY: e.clientY - rect.top,
-          targetRow: null,
-          before: true,
-          autoScrollDir: 0,
+        row.style.transition = 'none';
+        row.style.willChange = 'transform';
+
+        const computeOtherTransform = (i: number, newIdx: number): number => {
+          if (i === fromIdx) return 0;
+          if (newIdx > fromIdx && i > fromIdx && i <= newIdx) {
+            // dragged moved down → rows in (fromIdx, newIdx] slide up
+            return -(draggedH + GAP_PX);
+          }
+          if (newIdx < fromIdx && i >= newIdx && i < fromIdx) {
+            // dragged moved up → rows in [newIdx, fromIdx) slide down
+            return draggedH + GAP_PX;
+          }
+          return 0;
         };
-        document.addEventListener('pointermove', onPointerDragMove);
-        document.addEventListener('pointerup', onPointerDragEnd, { once: true });
-        document.addEventListener('pointercancel', onPointerDragEnd, { once: true });
-        document.body.style.userSelect = 'none';
-        document.body.style.cursor = 'grabbing';
-        autoScrollFrame = requestAnimationFrame(tickAutoScroll);
-      };
 
-      const onPointerDragMove = (e: PointerEvent) => {
-        if (!drag) return;
-        // ghost follows cursor (preserve original grab offset so it
-        // appears glued to the handle the user grabbed)
-        drag.ghost.style.left = `${e.clientX - drag.offsetX}px`;
-        drag.ghost.style.top = `${e.clientY - drag.offsetY}px`;
-        // pick drop target
-        const t = findDropTarget(e.clientY);
-        clearDropClasses();
-        if (t) {
-          t.row.classList.add(t.before ? 'drop-above' : 'drop-below');
-          drag.targetRow = t.row;
-          drag.before = t.before;
-        } else {
-          drag.targetRow = null;
-        }
-        // edge-of-screen auto-scroll
-        const margin = 60;
-        if (e.clientY < margin) drag.autoScrollDir = -1;
-        else if (e.clientY > window.innerHeight - margin) drag.autoScrollDir = 1;
-        else drag.autoScrollDir = 0;
-      };
+        const updateNewIdx = (cy: number) => {
+          // Insertion index by counting how many other rows have centres
+          // above the dragged row's current centre.
+          let pos = 0;
+          for (let i = 0; i < allRows.length; i++) {
+            if (i === fromIdx) continue;
+            const cy_i = rects[i].top + rects[i].height / 2;
+            if (cy > cy_i) pos++;
+          }
+          // pos is index in the "without-dragged" list. Convert to
+          // absolute index in working[]: same as pos.
+          return Math.max(0, Math.min(allRows.length - 1, pos));
+        };
 
-      const onPointerDragEnd = (_e: PointerEvent) => {
-        if (!drag) return;
-        document.removeEventListener('pointermove', onPointerDragMove);
-        document.body.style.userSelect = '';
-        document.body.style.cursor = '';
-        stopAutoScroll();
-        const { row, ghost, targetRow, before } = drag;
-        // animate ghost back to (or onto) the target slot before destroying it
-        let landingRect: DOMRect;
-        if (targetRow) {
-          const tr = targetRow.getBoundingClientRect();
-          landingRect = before
-            ? new DOMRect(tr.left, tr.top - row.getBoundingClientRect().height - 6, tr.width, tr.height)
-            : new DOMRect(tr.left, tr.bottom + 6, tr.width, tr.height);
-        } else {
-          landingRect = row.getBoundingClientRect();
-        }
-        ghost.style.transition = 'left 0.18s cubic-bezier(0.2,0,0.2,1), top 0.18s cubic-bezier(0.2,0,0.2,1), opacity 0.18s';
-        ghost.style.left = `${landingRect.left}px`;
-        ghost.style.top = `${landingRect.top}px`;
-        const cleanup = () => {
-          ghost.remove();
-          row.classList.remove('dragging');
-          clearDropClasses();
-          // perform the actual reorder
-          if (targetRow && targetRow !== row) {
-            const srcUid = row.dataset.uid!;
-            const tgtUid = targetRow.dataset.uid!;
-            const fromIdx = findIdx(srcUid);
-            let toIdx = findIdx(tgtUid);
-            if (fromIdx >= 0 && toIdx >= 0) {
+        const tickScroll = () => {
+          if (scrollDir !== 0) window.scrollBy(0, scrollDir * 12);
+          autoScrollFrame = requestAnimationFrame(tickScroll);
+        };
+
+        const onMove = (ev: PointerEvent) => {
+          const dy = ev.clientY - grabY;
+          row.style.transform = `translateY(${dy}px)`;
+          const cy = rects[fromIdx].top + draggedH / 2 + dy;
+          const newIdx = updateNewIdx(cy);
+          if (newIdx !== currentIdx) {
+            currentIdx = newIdx;
+            for (let i = 0; i < allRows.length; i++) {
+              if (i === fromIdx) continue;
+              const t = computeOtherTransform(i, newIdx);
+              allRows[i].style.transform = t === 0 ? '' : `translateY(${t}px)`;
+            }
+          }
+          // edge auto-scroll
+          const margin = 60;
+          if (ev.clientY < margin) scrollDir = -1;
+          else if (ev.clientY > window.innerHeight - margin) scrollDir = 1;
+          else scrollDir = 0;
+        };
+
+        const onUp = () => {
+          document.removeEventListener('pointermove', onMove);
+          if (autoScrollFrame) { cancelAnimationFrame(autoScrollFrame); autoScrollFrame = 0; }
+          document.body.style.userSelect = '';
+          document.body.style.cursor = '';
+
+          // Snap dragged row to its final position with animation
+          let finalY = 0;
+          if (currentIdx > fromIdx) {
+            for (let i = fromIdx + 1; i <= currentIdx; i++) finalY += rects[i].height + GAP_PX;
+          } else if (currentIdx < fromIdx) {
+            for (let i = currentIdx; i < fromIdx; i++) finalY -= rects[i].height + GAP_PX;
+          }
+          row.style.transition = 'transform 0.18s cubic-bezier(0.2,0,0.2,1)';
+          row.style.transform = `translateY(${finalY}px)`;
+
+          setTimeout(() => {
+            // Clear everything
+            allRows.forEach((r) => {
+              r.style.transform = '';
+              r.style.transition = '';
+              r.style.willChange = '';
+            });
+            row.classList.remove('dragging');
+            // Real reorder
+            if (currentIdx !== fromIdx) {
               const [moved] = working.splice(fromIdx, 1);
-              if (fromIdx < toIdx) toIdx--;
-              working.splice(before ? toIdx : toIdx + 1, 0, moved);
+              working.splice(currentIdx, 0, moved);
               renderAll();
               pushHistory();
             }
-          }
+          }, 200);
         };
-        setTimeout(cleanup, 180);
-        drag = null;
+
+        document.addEventListener('pointermove', onMove);
+        document.addEventListener('pointerup', onUp, { once: true });
+        document.addEventListener('pointercancel', onUp, { once: true });
+        document.body.style.userSelect = 'none';
+        document.body.style.cursor = 'grabbing';
+        autoScrollFrame = requestAnimationFrame(tickScroll);
       };
 
       const renderAll = () => {
