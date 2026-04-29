@@ -216,13 +216,13 @@ const editorBootstrap = {
       border: 1px solid var(--color-rule);
       border-radius: 4px;
       background-color: var(--color-row-card);
+      will-change: transform;
       transition:
-        margin 0.18s cubic-bezier(0.2, 0, 0.2, 1),
-        transform 0.18s cubic-bezier(0.2, 0, 0.2, 1),
-        opacity 0.15s,
-        border-color 0.15s,
-        background-color 0.15s,
-        box-shadow 0.15s;
+        transform 0.28s cubic-bezier(0.32, 0.72, 0, 1),
+        opacity 0.18s ease-out,
+        border-color 0.18s ease-out,
+        background-color 0.18s ease-out,
+        box-shadow 0.22s ease-out;
     }
     .lines.editing.space-y-3 > * + * { margin-top: 6px; }
     .lines.editing .script-line:hover {
@@ -237,7 +237,7 @@ const editorBootstrap = {
     .lines.editing .script-line.dragging {
       cursor: grabbing;
       z-index: 10;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+      box-shadow: 0 14px 36px rgba(0,0,0,0.18), 0 4px 12px rgba(0,0,0,0.08);
       border-color: var(--color-ink-faint);
       background-color: var(--color-bg);
     }
@@ -573,10 +573,15 @@ const editorBootstrap = {
         let currentIdx = fromIdx;
         let scrollDir = 0;
 
-        // dragged row follows cursor instantly
+        // dragged row: brief "lift" animation, then directly follows cursor
         row.classList.add('dragging');
-        row.style.transition = 'none';
         row.style.willChange = 'transform';
+        row.style.transition = 'transform 0.14s cubic-bezier(0.32, 0.72, 0, 1), box-shadow 0.16s ease-out';
+        row.style.transform = 'translateY(0) scale(1.015)';
+        // disable transition after the lift completes so cursor tracking is 1:1
+        const liftTimeout = window.setTimeout(() => {
+          row.style.transition = 'none';
+        }, 150);
 
         const computeOtherTransform = (i: number, newIdx: number): number => {
           if (i === fromIdx) return 0;
@@ -612,7 +617,8 @@ const editorBootstrap = {
 
         const onMove = (ev: PointerEvent) => {
           const dy = ev.clientY - grabY;
-          row.style.transform = `translateY(${dy}px)`;
+          // small 1.015× scale keeps the row visibly "lifted" off the page
+          row.style.transform = `translateY(${dy}px) scale(1.015)`;
           const cy = rects[fromIdx].top + draggedH / 2 + dy;
           const newIdx = updateNewIdx(cy);
           if (newIdx !== currentIdx) {
@@ -632,6 +638,7 @@ const editorBootstrap = {
 
         const onUp = () => {
           document.removeEventListener('pointermove', onMove);
+          window.clearTimeout(liftTimeout);
           if (autoScrollFrame) { cancelAnimationFrame(autoScrollFrame); autoScrollFrame = 0; }
           document.body.style.userSelect = '';
           document.body.style.cursor = '';
@@ -643,8 +650,10 @@ const editorBootstrap = {
           } else if (currentIdx < fromIdx) {
             for (let i = currentIdx; i < fromIdx; i++) finalY -= rects[i].height + GAP_PX;
           }
-          row.style.transition = 'transform 0.18s cubic-bezier(0.2,0,0.2,1)';
-          row.style.transform = `translateY(${finalY}px)`;
+          // ease back down: reset scale and box-shadow as the row lands
+          row.style.transition = 'transform 0.26s cubic-bezier(0.32, 0.72, 0, 1), box-shadow 0.22s ease-out';
+          row.style.transform = `translateY(${finalY}px) scale(1)`;
+          row.classList.remove('dragging');
 
           setTimeout(() => {
             // Clear everything
@@ -653,7 +662,6 @@ const editorBootstrap = {
               r.style.transition = '';
               r.style.willChange = '';
             });
-            row.classList.remove('dragging');
             // Real reorder
             if (currentIdx !== fromIdx) {
               const [moved] = working.splice(fromIdx, 1);
@@ -661,7 +669,7 @@ const editorBootstrap = {
               renderAll();
               pushHistory();
             }
-          }, 200);
+          }, 280);
         };
 
         document.addEventListener('pointermove', onMove);
