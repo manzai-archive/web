@@ -216,7 +216,13 @@ const editorBootstrap = {
       border: 1px solid var(--color-rule);
       border-radius: 4px;
       background-color: var(--color-row-card);
-      transition: border-color 0.15s, background-color 0.15s, box-shadow 0.15s;
+      transition:
+        margin 0.18s cubic-bezier(0.2, 0, 0.2, 1),
+        transform 0.18s cubic-bezier(0.2, 0, 0.2, 1),
+        opacity 0.15s,
+        border-color 0.15s,
+        background-color 0.15s,
+        box-shadow 0.15s;
     }
     .lines.editing.space-y-3 > * + * { margin-top: 6px; }
     .lines.editing .script-line:hover {
@@ -229,7 +235,17 @@ const editorBootstrap = {
       padding-left: 30px;
     }
     .lines.editing .script-line.dragging {
-      opacity: 0.4;
+      opacity: 0.35;
+      transform: scale(0.985);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.10);
+      border-color: var(--color-ink-faint);
+      background-color: var(--color-hover-tint);
+    }
+    .lines.editing .script-line.drop-above {
+      margin-top: 38px;
+    }
+    .lines.editing .script-line.drop-below {
+      margin-bottom: 38px;
     }
     .lines.editing .script-line.drop-above::before,
     .lines.editing .script-line.drop-below::after {
@@ -240,8 +256,8 @@ const editorBootstrap = {
       background-color: var(--color-ink);
       border-radius: 1px;
     }
-    .lines.editing .script-line.drop-above::before { top: -4px; }
-    .lines.editing .script-line.drop-below::after { bottom: -4px; }
+    .lines.editing .script-line.drop-above::before { top: -20px; }
+    .lines.editing .script-line.drop-below::after { bottom: -20px; }
 
     .lines.editing [data-role="speaker"] {
       cursor: pointer;
@@ -426,12 +442,19 @@ const editorBootstrap = {
         restore();
       };
 
+      // Stable speaker → color-index mapping (so changing speaker
+      // updates the row colour immediately without re-render).
+      const speakerToIdx = new Map<string, number>();
+      boot.speakerOptions.forEach((s, i) => speakerToIdx.set(s, i % 2));
+      const colorIdx = (speakerName: string) =>
+        speakerToIdx.has(speakerName) ? speakerToIdx.get(speakerName)! : 0;
+
       // ----- DOM building & wiring -----
-      const buildRow = (u: Utt, idx: number): HTMLElement => {
+      const buildRow = (u: Utt, _idx: number): HTMLElement => {
         const sl = boot.sourceLang;
         const tpl = document.createElement('div');
         tpl.innerHTML = `
-          <div class="script-line group relative flex gap-4 py-1" data-uid="${escAttr(u.id)}" data-speaker-idx="${idx % 2}">
+          <div class="script-line group relative flex gap-4 py-1" data-uid="${escAttr(u.id)}" data-speaker-idx="${colorIdx(u.speaker)}">
             <span class="row-drag-handle" title="拖动排序" draggable="true">⋮⋮</span>
             <span class="speaker shrink-0 w-20 text-right text-[13px] font-medium" style="line-height: 1.85" data-role="speaker">${escHtml(u.speaker)}</span>
             <span class="text-[11px] tabular-nums shrink-0 w-14 pt-1" style="color: var(--color-ink-faint)" data-role="time" spellcheck="false">${escHtml(u.t)}</span>
@@ -627,6 +650,7 @@ const editorBootstrap = {
               const row = linesEl?.querySelector(`.script-line[data-uid="${cssEscape(uid)}"]`) as HTMLElement | null;
               const speakerEl = row?.querySelector('[data-role="speaker"]') as HTMLElement | null;
               if (speakerEl) speakerEl.textContent = opt;
+              if (row) row.dataset.speakerIdx = String(colorIdx(opt));
               row?.classList.add('dirty');
               pushHistory();
             }
