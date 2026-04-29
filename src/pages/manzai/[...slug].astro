@@ -257,8 +257,6 @@ const editorBootstrap = {
       text-decoration-color: var(--color-ink-faint);
       text-underline-offset: 4px;
       border-radius: 3px;
-      padding: 2px 6px;
-      margin: -2px -6px;
       transition: background-color 0.15s, text-decoration-color 0.15s, color 0.15s;
     }
     .lines.editing [data-role="speaker"]::after {
@@ -276,35 +274,36 @@ const editorBootstrap = {
     .lines.editing [data-role="speaker"]:hover::after {
       opacity: 1;
     }
+    /* No padding/margin manipulation here — the negative margin made the
+       click box bleed into adjacent gaps and over the ⋯ trigger area,
+       which caused clicks "to the left/right" to focus this text. */
     .lines.editing [data-role="text"] {
       cursor: text;
       caret-color: var(--color-warm);
       outline: none;
       border-radius: 3px;
-      padding: 2px 6px;
-      margin: -2px -6px;
       transition: background-color 0.15s, box-shadow 0.15s;
     }
     .lines.editing [data-role="text"]:hover {
       background-color: var(--color-edit-tint);
-      box-shadow: inset 0 0 0 1px var(--color-rule);
     }
     .lines.editing [data-role="text"]:focus {
       background-color: var(--color-edit-tint-strong);
-      box-shadow: inset 0 0 0 1px var(--color-edit-ring);
+      box-shadow: 0 0 0 1px var(--color-edit-ring);
     }
+    /* Time stamp: no padding/margin (would push text out of the w-14
+       fixed box and cause "00:00:00" to wrap). */
     .lines.editing [data-role="time"] {
       cursor: text;
       caret-color: var(--color-warm);
       outline: none;
       border-radius: 3px;
-      padding: 2px 4px;
-      margin: -2px -4px;
       text-decoration: underline;
       text-decoration-style: dotted;
       text-decoration-color: var(--color-ink-faint);
       text-underline-offset: 3px;
       transition: background-color 0.15s, text-decoration-color 0.15s, box-shadow 0.15s;
+      white-space: nowrap;
     }
     .lines.editing [data-role="time"]:hover {
       background-color: var(--color-hover-tint-strong);
@@ -313,7 +312,7 @@ const editorBootstrap = {
     .lines.editing [data-role="time"]:focus {
       background-color: var(--color-edit-tint-strong);
       text-decoration-color: transparent;
-      box-shadow: inset 0 0 0 1px var(--color-edit-ring);
+      box-shadow: 0 0 0 1px var(--color-edit-ring);
     }
     .lines.editing [data-role="time"].invalid {
       box-shadow: 0 0 0 1px var(--color-warm);
