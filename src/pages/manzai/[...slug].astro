@@ -577,11 +577,21 @@ const editorBootstrap = {
         row.classList.add('dragging');
         row.style.willChange = 'transform';
         row.style.transition = 'transform 0.14s cubic-bezier(0.32, 0.72, 0, 1), box-shadow 0.16s ease-out';
-        row.style.transform = 'translateY(0) scale(1.015)';
+        row.style.transform = 'translate3d(0, 0, 0) scale(1.015)';
         // disable transition after the lift completes so cursor tracking is 1:1
         const liftTimeout = window.setTimeout(() => {
           row.style.transition = 'none';
         }, 150);
+
+        // explicitly give every OTHER row a transform transition so the
+        // reflow animates smoothly, regardless of any inline transition
+        // that may have been set previously
+        const REFLOW_TRANSITION = 'transform 0.32s cubic-bezier(0.32, 0.72, 0, 1)';
+        for (let i = 0; i < allRows.length; i++) {
+          if (i === fromIdx) continue;
+          allRows[i].style.transition = REFLOW_TRANSITION;
+          allRows[i].style.willChange = 'transform';
+        }
 
         const computeOtherTransform = (i: number, newIdx: number): number => {
           if (i === fromIdx) return 0;
@@ -618,7 +628,8 @@ const editorBootstrap = {
         const onMove = (ev: PointerEvent) => {
           const dy = ev.clientY - grabY;
           // small 1.015× scale keeps the row visibly "lifted" off the page
-          row.style.transform = `translateY(${dy}px) scale(1.015)`;
+          // translate3d → forces GPU compositing for buttery scrolling
+          row.style.transform = `translate3d(0, ${dy}px, 0) scale(1.015)`;
           const cy = rects[fromIdx].top + draggedH / 2 + dy;
           const newIdx = updateNewIdx(cy);
           if (newIdx !== currentIdx) {
@@ -626,7 +637,8 @@ const editorBootstrap = {
             for (let i = 0; i < allRows.length; i++) {
               if (i === fromIdx) continue;
               const t = computeOtherTransform(i, newIdx);
-              allRows[i].style.transform = t === 0 ? '' : `translateY(${t}px)`;
+              allRows[i].style.transform =
+                t === 0 ? 'translate3d(0, 0, 0)' : `translate3d(0, ${t}px, 0)`;
             }
           }
           // edge auto-scroll
@@ -651,8 +663,8 @@ const editorBootstrap = {
             for (let i = currentIdx; i < fromIdx; i++) finalY -= rects[i].height + GAP_PX;
           }
           // ease back down: reset scale and box-shadow as the row lands
-          row.style.transition = 'transform 0.26s cubic-bezier(0.32, 0.72, 0, 1), box-shadow 0.22s ease-out';
-          row.style.transform = `translateY(${finalY}px) scale(1)`;
+          row.style.transition = 'transform 0.30s cubic-bezier(0.32, 0.72, 0, 1), box-shadow 0.22s ease-out';
+          row.style.transform = `translate3d(0, ${finalY}px, 0) scale(1)`;
           row.classList.remove('dragging');
 
           setTimeout(() => {
